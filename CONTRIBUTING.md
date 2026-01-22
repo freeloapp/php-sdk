@@ -44,7 +44,7 @@ Enhancement suggestions are welcome! Please provide:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/freelo/php-sdk.git
+git clone https://gitlab.com/freeloapp/php-sdk.git
 cd php-sdk
 ```
 

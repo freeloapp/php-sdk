@@ -55,4 +55,4 @@ jobs:
         run: |
           echo "Release created successfully!"
           echo "Packagist should auto-update via webhook."
-          echo "If not, visit https://packagist.org/packages/freelo/php-sdk and click 'Update'"
+          echo "If not, visit https://packagist.org/packages/freeloapp/php-sdk and click 'Update'"

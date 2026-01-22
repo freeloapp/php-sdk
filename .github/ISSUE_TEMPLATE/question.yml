@@ -9,9 +9,9 @@ body:
         Have a question? We're here to help!
 
         Before asking, please check:
-        - [Documentation](https://github.com/freelo/php-sdk/tree/main/docs)
-        - [Examples](https://github.com/freelo/php-sdk/tree/main/examples)
-        - [Existing Issues](https://github.com/freelo/php-sdk/issues)
+        - [Documentation](https://gitlab.com/freeloapp/php-sdk/-/tree/main/docs)
+        - [Examples](https://gitlab.com/freeloapp/php-sdk/-/tree/main/examples)
+        - [Existing Issues](https://gitlab.com/freeloapp/php-sdk/-/issues)
 
   - type: textarea
     id: question

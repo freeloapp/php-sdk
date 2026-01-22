@@ -115,5 +115,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Code coverage reporting
 
-[Unreleased]: https://github.com/freelo/php-sdk/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/freelo/php-sdk/releases/tag/v1.0.0
+[Unreleased]: https://gitlab.com/freeloapp/php-sdk/-/compare/v1.0.0...HEAD
+[1.0.0]: https://gitlab.com/freeloapp/php-sdk/-/releases/v1.0.0

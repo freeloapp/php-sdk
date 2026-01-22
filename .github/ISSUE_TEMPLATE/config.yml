@@ -4,5 +4,5 @@ contact_links:
     url: https://freelo.docs.apiary.io/
     about: Official Freelo API documentation
   - name: SDK Documentation
-    url: https://github.com/freelo/php-sdk/tree/main/docs
+    url: https://gitlab.com/freeloapp/php-sdk/-/tree/main/docs
     about: Freelo PHP SDK documentation and guides

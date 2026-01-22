@@ -97,7 +97,7 @@ try {
 Regularly update the SDK and its dependencies to get the latest security patches:
 
 ```bash
-composer update freelo/php-sdk
+composer update freeloapp/php-sdk
 ```
 
 ### 6. Rate Limiting

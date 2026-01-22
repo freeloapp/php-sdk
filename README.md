@@ -1,7 +1,7 @@
 # Freelo PHP SDK
 
-[![PHP Version](https://img.shields.io/packagist/php-v/freelo/php-sdk.svg?style=flat-square)](https://packagist.org/packages/freelo/php-sdk)
-[![License](https://img.shields.io/packagist/l/freelo/php-sdk.svg?style=flat-square)](LICENSE)
+[![PHP Version](https://img.shields.io/packagist/php-v/freeloapp/php-sdk.svg?style=flat-square)](https://packagist.org/packages/freeloapp/php-sdk)
+[![License](https://img.shields.io/packagist/l/freeloapp/php-sdk.svg?style=flat-square)](LICENSE)
 
 Modern, lightweight PHP SDK for [Freelo API](https://freelo.docs.apiary.io/).
 
@@ -17,7 +17,7 @@ Modern, lightweight PHP SDK for [Freelo API](https://freelo.docs.apiary.io/).
 ## Installation
 
 ```bash
-composer require freelo/php-sdk
+composer require freeloapp/php-sdk
 ```
 
 Install an HTTP client (e.g., Guzzle):
