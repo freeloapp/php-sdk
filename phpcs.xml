@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<ruleset name="Freelo SDK Coding Standard">
+    <description>PSR-12 coding standard for Freelo PHP SDK</description>
+
+    <!-- Include the PSR-12 coding standard -->
+    <rule ref="PSR12"/>
+
+    <!-- Check these directories -->
+    <file>src</file>
+    <file>tests</file>
+
+    <!-- Show progress -->
+    <arg value="p"/>
+    <!-- Use colors -->
+    <arg name="colors"/>
+    <!-- Show sniff names -->
+    <arg value="s"/>
+
+    <!-- Ignore specific patterns -->
+    <exclude-pattern>*/tests/fixtures/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/coverage/*</exclude-pattern>
+
+    <!-- Additional rules -->
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="150"/>
+        </properties>
+    </rule>
+</ruleset>

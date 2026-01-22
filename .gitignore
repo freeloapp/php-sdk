@@ -1,0 +1,45 @@
+# Composer
+/vendor/
+composer.lock
+
+# PHPUnit
+/.phpunit.cache/
+/coverage/
+/coverage.xml
+.phpunit.result.cache
+
+# PHPStan
+/.phpstan/
+phpstan.neon.dist
+
+# phpDocumentor
+/.phpdoc/
+
+# IDE
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Build artifacts
+/build/
+/dist/
+
+# Cache
+/.cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# Swagger-generated code (not part of this SDK)
+/.swagger/
