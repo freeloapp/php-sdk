@@ -12,7 +12,7 @@
         "http-client"
     ],
     "license": "MIT",
-    "homepage": "https://github.com/freelo/php-sdk",
+    "homepage": "https://gitlab.com/freeloapp/php-sdk",
     "readme": "README.md",
     "authors": [
         {
@@ -21,9 +21,9 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/freelo/php-sdk/issues",
-        "source": "https://github.com/freelo/php-sdk",
-        "docs": "https://github.com/freelo/php-sdk/blob/main/README.md"
+        "issues": "https://gitlab.com/freeloapp/php-sdk/-/issues",
+        "source": "https://gitlab.com/freeloapp/php-sdk",
+        "docs": "https://gitlab.com/freeloapp/php-sdk/-/blob/main/README.md"
     },
     "require": {
         "php": "^8.1",
