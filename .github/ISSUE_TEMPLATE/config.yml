@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Freelo API Documentation
+    url: https://freelo.docs.apiary.io/
+    about: Official Freelo API documentation
+  - name: SDK Documentation
+    url: https://github.com/freelo/php-sdk/tree/main/docs
+    about: Freelo PHP SDK documentation and guides

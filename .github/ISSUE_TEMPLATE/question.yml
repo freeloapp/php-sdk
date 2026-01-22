@@ -1,0 +1,53 @@
+name: Question
+description: Ask a question about using the SDK
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? We're here to help!
+
+        Before asking, please check:
+        - [Documentation](https://github.com/freelo/php-sdk/tree/main/docs)
+        - [Examples](https://github.com/freelo/php-sdk/tree/main/examples)
+        - [Existing Issues](https://github.com/freelo/php-sdk/issues)
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I...?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to accomplish?
+      placeholder: I'm trying to...
+    validations:
+      required: false
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What Have You Tried?
+      description: What have you already tried? Include code samples if relevant.
+      render: php
+      placeholder: |
+        <?php
+        // What I've tried so far...
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: SDK Version
+      description: Which version of the SDK are you using?
+      placeholder: e.g., 1.0.0
+    validations:
+      required: false
