@@ -1,9 +1,10 @@
 {
-    "name": "freelo/php-sdk",
+    "name": "freeloapp/php-sdk",
     "description": "Modern PHP SDK for Freelo API - Project and task management",
     "type": "library",
     "keywords": [
         "freelo",
+        "freeloapp",
         "api",
         "sdk",
         "project-management",
