@@ -1,0 +1,110 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Freelo\Sdk\Model;
+
+/**
+ * Represents a Freelo task
+ */
+class Task
+{
+    /**
+     * @param TaskLabel[] $labels
+     * @param Comment[] $comments
+     * @param CustomField[] $customFields
+     * @param array<string, mixed> $usersTimeEstimates
+     * @param array<string, mixed> $data
+     */
+    public function __construct(
+        public readonly int $id,
+        public readonly string $name,
+        public readonly ?string $dateAdd = null,
+        public readonly ?string $dateEditedAt = null,
+        public readonly ?string $dueDate = null,
+        public readonly ?string $dueDateEnd = null,
+        public readonly ?string $dateFinished = null,
+        public readonly ?string $priorityEnum = null,
+        public readonly ?int $minutes = null,
+        public readonly ?int $countComments = null,
+        public readonly ?int $countSubtasks = null,
+        public readonly ?int $finishedSubtasksCount = null,
+        public readonly ?int $parentTaskId = null,
+        public readonly ?User $author = null,
+        public readonly ?User $worker = null,
+        public readonly ?User $finishedBy = null,
+        public readonly ?State $state = null,
+        public readonly ?Project $project = null,
+        public readonly ?Tasklist $tasklist = null,
+        public readonly ?Currency $cost = null,
+        public readonly ?TimeEstimate $totalTimeEstimate = null,
+        public readonly array $labels = [],
+        public readonly array $comments = [],
+        public readonly array $customFields = [],
+        public readonly array $usersTimeEstimates = [],
+        public readonly array $data = [],
+    ) {
+    }
+
+    /**
+     * Create a Task from API response data
+     *
+     * @param array<string, mixed> $data
+     */
+    public static function fromArray(array $data): self
+    {
+        $labelsData = isset($data['labels']) && is_array($data['labels']) ? $data['labels'] : [];
+        $commentsData = isset($data['comments']) && is_array($data['comments']) ? $data['comments'] : [];
+        $customFieldsData = isset($data['custom_fields']) && is_array($data['custom_fields']) ? $data['custom_fields'] : [];
+
+        return new self(
+            id: (int) ($data['id'] ?? 0),
+            name: isset($data['name']) ? (string) $data['name'] : '',
+            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
+            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
+            dueDate: isset($data['due_date']) ? (string) $data['due_date'] : null,
+            dueDateEnd: isset($data['due_date_end']) ? (string) $data['due_date_end'] : null,
+            dateFinished: isset($data['date_finished']) ? (string) $data['date_finished'] : null,
+            priorityEnum: isset($data['priority_enum']) ? (string) $data['priority_enum'] : null,
+            minutes: isset($data['minutes']) ? (int) $data['minutes'] : null,
+            countComments: isset($data['count_comments']) ? (int) $data['count_comments'] : null,
+            countSubtasks: isset($data['count_subtasks']) ? (int) $data['count_subtasks'] : null,
+            finishedSubtasksCount: isset($data['finished_subtasks_count']) ? (int) $data['finished_subtasks_count'] : null,
+            parentTaskId: isset($data['parent_task_id']) ? (int) $data['parent_task_id'] : null,
+            author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
+            worker: isset($data['worker']) && is_array($data['worker']) ? User::fromArray($data['worker']) : null,
+            finishedBy: isset($data['finished_by']) && is_array($data['finished_by']) ? User::fromArray($data['finished_by']) : null,
+            state: isset($data['state']) && is_array($data['state']) ? State::fromArray($data['state']) : null,
+            project: isset($data['project']) && is_array($data['project']) ? Project::fromArray($data['project']) : null,
+            tasklist: isset($data['tasklist']) && is_array($data['tasklist']) ? Tasklist::fromArray($data['tasklist']) : null,
+            cost: isset($data['cost']) && is_array($data['cost']) ? Currency::fromArray($data['cost']) : null,
+            totalTimeEstimate: isset($data['total_time_estimate']) && is_array($data['total_time_estimate'])
+                ? TimeEstimate::fromArray($data['total_time_estimate'])
+                : null,
+            labels: array_map(
+                fn (array $l) => TaskLabel::fromArray($l),
+                $labelsData
+            ),
+            comments: array_map(
+                fn (array $c) => Comment::fromArray($c),
+                $commentsData
+            ),
+            customFields: array_map(
+                fn (array $cf) => CustomField::fromArray($cf),
+                $customFieldsData
+            ),
+            usersTimeEstimates: isset($data['users_time_estimates']) && is_array($data['users_time_estimates']) ? $data['users_time_estimates'] : [],
+            data: $data,
+        );
+    }
+
+    /**
+     * Convert to array
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return $this->data;
+    }
+}
