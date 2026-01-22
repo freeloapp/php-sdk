@@ -1,0 +1,5 @@
+{
+    "error": "rate_limit_exceeded",
+    "message": "Too many requests. Please wait before making another request.",
+    "retry_after": 60
+}

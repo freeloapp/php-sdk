@@ -1,0 +1,42 @@
+[
+    {
+        "id": 123,
+        "name": "Project Alpha",
+        "date_add": "2024-01-15T10:30:00+00:00",
+        "date_edited_at": "2024-01-20T14:00:00+00:00",
+        "state": {
+            "id": 1,
+            "state": "active"
+        },
+        "owner": {
+            "id": 456,
+            "fullname": "John Doe",
+            "email": "john@example.com"
+        },
+        "tasklists": [
+            {
+                "id": 789,
+                "name": "Development"
+            },
+            {
+                "id": 790,
+                "name": "Design"
+            }
+        ]
+    },
+    {
+        "id": 124,
+        "name": "Project Beta",
+        "date_add": "2024-02-01T08:00:00+00:00",
+        "date_edited_at": "2024-02-15T16:30:00+00:00",
+        "state": {
+            "id": 1,
+            "state": "active"
+        },
+        "owner": {
+            "id": 457,
+            "fullname": "Jane Smith",
+            "email": "jane@example.com"
+        }
+    }
+]

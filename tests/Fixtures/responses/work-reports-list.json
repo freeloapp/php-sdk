@@ -1,0 +1,36 @@
+[
+    {
+        "id": 5001,
+        "minutes": 120,
+        "note": "Implemented OAuth2 callback handler",
+        "date_add": "2024-01-18T17:00:00+00:00",
+        "date_report": "2024-01-18",
+        "user": {
+            "id": 457,
+            "fullname": "Jane Smith"
+        },
+        "cost": {
+            "amount": "100000",
+            "currency": "CZK"
+        },
+        "task_id": 1001,
+        "project_id": 123
+    },
+    {
+        "id": 5002,
+        "minutes": 60,
+        "note": "Code review and testing",
+        "date_add": "2024-01-19T10:00:00+00:00",
+        "date_report": "2024-01-19",
+        "user": {
+            "id": 456,
+            "fullname": "John Doe"
+        },
+        "cost": {
+            "amount": "50000",
+            "currency": "CZK"
+        },
+        "task_id": 1001,
+        "project_id": 123
+    }
+]

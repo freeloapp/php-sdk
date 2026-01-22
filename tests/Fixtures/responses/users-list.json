@@ -1,0 +1,29 @@
+[
+    {
+        "id": 456,
+        "fullname": "John Doe",
+        "email": "john@example.com",
+        "hour_rate": {
+            "amount": "50000",
+            "currency": "CZK"
+        }
+    },
+    {
+        "id": 457,
+        "fullname": "Jane Smith",
+        "email": "jane@example.com",
+        "hour_rate": {
+            "amount": "45000",
+            "currency": "CZK"
+        }
+    },
+    {
+        "id": 458,
+        "fullname": "Bob Wilson",
+        "email": "bob@example.com",
+        "hour_rate": {
+            "amount": "40000",
+            "currency": "CZK"
+        }
+    }
+]

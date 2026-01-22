@@ -1,0 +1,78 @@
+{
+    "id": 1001,
+    "name": "Implement user authentication",
+    "date_add": "2024-01-16T09:00:00+00:00",
+    "date_edited_at": "2024-01-18T14:30:00+00:00",
+    "due_date": "2024-02-01",
+    "priority_enum": "h",
+    "minutes": 480,
+    "note": "Implement OAuth2 authentication with support for Google and GitHub providers.",
+    "state": {
+        "id": 1,
+        "state": "active"
+    },
+    "project": {
+        "id": 123,
+        "name": "Project Alpha"
+    },
+    "tasklist": {
+        "id": 789,
+        "name": "Development"
+    },
+    "author": {
+        "id": 456,
+        "fullname": "John Doe",
+        "email": "john@example.com"
+    },
+    "worker": {
+        "id": 457,
+        "fullname": "Jane Smith",
+        "email": "jane@example.com"
+    },
+    "labels": [
+        {
+            "uuid": "550e8400-e29b-41d4-a716-446655440001",
+            "name": "Backend",
+            "color": "#0000ff"
+        },
+        {
+            "uuid": "550e8400-e29b-41d4-a716-446655440002",
+            "name": "Security",
+            "color": "#ff0000"
+        }
+    ],
+    "subtasks": [
+        {
+            "id": 2001,
+            "name": "Research OAuth2 providers",
+            "state": {
+                "id": 3,
+                "state": "finished"
+            },
+            "date_finished": "2024-01-17T16:00:00+00:00"
+        },
+        {
+            "id": 2002,
+            "name": "Implement Google OAuth",
+            "state": {
+                "id": 1,
+                "state": "active"
+            }
+        }
+    ],
+    "time_estimate": {
+        "minutes": 480,
+        "cost": {
+            "amount": "400000",
+            "currency": "CZK"
+        }
+    },
+    "custom_fields": [
+        {
+            "id": 1,
+            "name": "Sprint",
+            "type": "select",
+            "value": "Sprint 3"
+        }
+    ]
+}

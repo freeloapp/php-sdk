@@ -1,0 +1,63 @@
+{
+    "id": 123,
+    "name": "Project Alpha",
+    "date_add": "2024-01-15T10:30:00+00:00",
+    "date_edited_at": "2024-01-20T14:00:00+00:00",
+    "state": {
+        "id": 1,
+        "state": "active"
+    },
+    "owner": {
+        "id": 456,
+        "fullname": "John Doe",
+        "email": "john@example.com"
+    },
+    "currency_iso": "CZK",
+    "tasklists": [
+        {
+            "id": 789,
+            "name": "Development",
+            "date_add": "2024-01-15T10:30:00+00:00",
+            "state": {
+                "id": 1,
+                "state": "active"
+            }
+        },
+        {
+            "id": 790,
+            "name": "Design",
+            "date_add": "2024-01-15T10:35:00+00:00",
+            "state": {
+                "id": 1,
+                "state": "active"
+            }
+        }
+    ],
+    "workers": [
+        {
+            "id": 456,
+            "fullname": "John Doe",
+            "email": "john@example.com",
+            "hour_rate": {
+                "amount": "50000",
+                "currency": "CZK"
+            }
+        },
+        {
+            "id": 457,
+            "fullname": "Jane Smith",
+            "email": "jane@example.com",
+            "hour_rate": {
+                "amount": "45000",
+                "currency": "CZK"
+            }
+        }
+    ],
+    "labels": [
+        {
+            "id": 1,
+            "name": "Urgent",
+            "color": "#ff0000"
+        }
+    ]
+}

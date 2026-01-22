@@ -1,0 +1,30 @@
+[
+    {
+        "id": 3001,
+        "content": "Great progress on this task! Let me know if you need any help.",
+        "date_add": "2024-01-18T10:00:00+00:00",
+        "author": {
+            "id": 456,
+            "fullname": "John Doe",
+            "email": "john@example.com"
+        },
+        "files": []
+    },
+    {
+        "id": 3002,
+        "content": "Thanks! I'll have a question about the OAuth flow later.",
+        "date_add": "2024-01-18T11:30:00+00:00",
+        "author": {
+            "id": 457,
+            "fullname": "Jane Smith",
+            "email": "jane@example.com"
+        },
+        "files": [
+            {
+                "id": 4001,
+                "name": "oauth-flow-diagram.png",
+                "url": "https://app.freelo.io/files/4001"
+            }
+        ]
+    }
+]

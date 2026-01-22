@@ -1,0 +1,8 @@
+{
+    "error": "validation_error",
+    "message": "Validation failed",
+    "errors": {
+        "name": ["The name field is required"],
+        "due_date": ["The due date must be a valid date format"]
+    }
+}
