@@ -168,6 +168,88 @@ class FreeloClientTest extends TestCase
         $this->client->get('https://custom.example.com/api');
     }
 
+    public function testSetCredentials(): void
+    {
+        $client = new FreeloClient(
+            $this->httpClient,
+            $this->requestFactory,
+            $this->streamFactory,
+            null,
+        );
+
+        $credentials = $this->createMock(Credentials::class);
+        $client->setCredentials($credentials);
+
+        $this->assertSame($credentials, $client->getCredentials());
+    }
+
+    public function testGetCredentialsReturnsNullByDefault(): void
+    {
+        $client = new FreeloClient(
+            $this->httpClient,
+            $this->requestFactory,
+            $this->streamFactory,
+            null,
+        );
+
+        $this->assertNull($client->getCredentials());
+    }
+
+    public function testLazyInitializationWithoutCredentials(): void
+    {
+        $client = new FreeloClient(
+            $this->httpClient,
+            $this->requestFactory,
+            $this->streamFactory,
+            null,
+        );
+
+        // Client should be constructed successfully without credentials
+        $this->assertInstanceOf(FreeloClient::class, $client);
+        $this->assertNull($client->getCredentials());
+    }
+
+    public function testSetCredentialsWithUserAgent(): void
+    {
+        $client = new FreeloClient(
+            $this->httpClient,
+            $this->requestFactory,
+            $this->streamFactory,
+            null,
+        );
+
+        $credentials = $this->createMock(Credentials::class);
+        $client->setCredentials($credentials, 'MyApp/2.0');
+
+        $this->assertSame($credentials, $client->getCredentials());
+        $this->assertSame('MyApp/2.0', $client->getUserAgent());
+    }
+
+    public function testSetCredentialsWithoutUserAgentKeepsExisting(): void
+    {
+        $this->client->setUserAgent('OriginalAgent/1.0');
+
+        $credentials = $this->createMock(Credentials::class);
+        $this->client->setCredentials($credentials);
+
+        $this->assertSame('OriginalAgent/1.0', $this->client->getUserAgent());
+    }
+
+    public function testRequestThrowsWhenCredentialsNotSet(): void
+    {
+        $client = new FreeloClient(
+            $this->httpClient,
+            $this->requestFactory,
+            $this->streamFactory,
+            null,
+        );
+
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('Credentials not set. Use setCredentials() to provide them before making API requests.');
+
+        $client->get('projects');
+    }
+
     private function setupSuccessfulRequest(string $method, string $expectedUri, string $responseBody): void
     {
         $psrRequest = $this->createMock(RequestInterface::class);

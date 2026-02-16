@@ -10,6 +10,8 @@ Modern, lightweight PHP SDK for [Freelo API](https://freelo.docs.apiary.io/).
 - PHP 8.1+ with strict types
 - PSR-18/17/7/16 compliant (bring your own HTTP client)
 - Full API coverage (projects, tasks, files, comments, time tracking, etc.)
+- Dynamic credentials with server-safe per-request switching
+- Low-level `call()` method for arbitrary API endpoints
 - Automatic pagination support
 - Rate limiting detection
 - Typed exceptions for error handling
@@ -32,10 +34,10 @@ composer require guzzlehttp/guzzle php-http/guzzle7-adapter nyholm/psr7
 use Freelo\Sdk\Freelo;
 use Freelo\Sdk\Auth\ApiKeyCredentials;
 
-$freelo = new Freelo(new ApiKeyCredentials(
-    apiKey: 'your-api-key',
-    email: 'your-email@example.com'
-));
+$freelo = new Freelo(
+    new ApiKeyCredentials('your-api-key', 'your-email@example.com'),
+    userAgent: 'MyApp/1.0',
+);
 
 // List projects
 foreach ($freelo->projects()->list() as $project) {
@@ -63,7 +65,7 @@ $credentials = new ApiKeyCredentials(
     email: getenv('FREELO_EMAIL')
 );
 
-$freelo = new Freelo($credentials);
+$freelo = new Freelo($credentials, userAgent: 'MyApp/1.0');
 ```
 
 ## Usage Examples
@@ -111,6 +113,87 @@ $freelo->workReports()->create(123, [
 ```php
 $freelo->files()->uploadToTask(taskId: 123, filePath: '/path/to/file.pdf');
 $freelo->files()->download(fileId: 456, destination: '/path/to/save.pdf');
+```
+
+### Dynamic Credentials
+
+#### Per-request credentials (server-safe)
+
+Use `withCredentials()` to create an isolated instance with different credentials. Each derived instance has its own client and state — safe for concurrent requests in multi-tenant server applications.
+
+```php
+// Shared base instance (e.g. in a service provider)
+$freelo = new Freelo(new ApiKeyCredentials(
+    apiKey: 'default-key',
+    email: 'default@example.com'
+));
+
+// Per-request — fully isolated, concurrency-safe
+$userFreelo = $freelo->withCredentials(new ApiKeyCredentials(
+    apiKey: $user->apiKey,
+    email: $user->email
+));
+
+// Optionally override userAgent per tenant
+$userFreelo = $freelo->withCredentials(
+    new ApiKeyCredentials($user->apiKey, $user->email),
+    userAgent: 'TenantApp/1.0',
+);
+
+$projects = $userFreelo->projects()->list();
+```
+
+For simple single-user scripts, you can swap credentials in place with `setCredentials()`:
+
+```php
+$freelo->setCredentials(new ApiKeyCredentials(
+    apiKey: 'new-key',
+    email: 'new@example.com'
+));
+
+// With userAgent override
+$freelo->setCredentials(
+    new ApiKeyCredentials('new-key', 'new@example.com'),
+    userAgent: 'MyApp/2.0',
+);
+```
+
+> **Note:** `setCredentials()` mutates the shared instance and is **not safe** for concurrent requests.
+
+#### Lazy initialization
+
+The SDK supports creating a client without credentials upfront. Credentials can be provided later via `setCredentials()` — validation is deferred to the first API request.
+
+```php
+$freelo = new Freelo();
+
+// ... later, when credentials are available
+$freelo->setCredentials(new ApiKeyCredentials(
+    apiKey: $apiKey,
+    email: $email
+));
+
+$freelo->projects()->list(); // works
+```
+
+### Low-level API Calls
+
+Use `call()` to hit arbitrary API endpoints not yet covered by typed resource classes:
+
+```php
+// GET request with query parameters
+$response = $freelo->call('/projects', 'GET', params: ['p' => 0]);
+$data = $response->json();
+
+// POST request with body
+$response = $freelo->call('/projects/123/tasklists/456/tasks', 'POST', data: [
+    'name' => 'New task',
+    'priority_enum' => 'h',
+]);
+
+// Also available on derived instances
+$userFreelo = $freelo->withCredentials($credentials);
+$response = $userFreelo->call('/users/me', 'GET');
 ```
 
 ## Available Resources

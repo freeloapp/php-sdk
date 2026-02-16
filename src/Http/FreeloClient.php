@@ -30,13 +30,39 @@ class FreeloClient
         private readonly ClientInterface $httpClient,
         private readonly RequestFactoryInterface $requestFactory,
         private readonly StreamFactoryInterface $streamFactory,
-        private readonly Credentials $credentials,
+        private ?Credentials $credentials = null,
         private readonly ResponseParser $responseParser = new ResponseParser(),
         ?RateLimiter $rateLimiter = null,
         ?RetryHandler $retryHandler = null,
     ) {
         $this->rateLimiter = $rateLimiter ?? new RateLimiter();
         $this->retryHandler = $retryHandler;
+    }
+
+    /**
+     * Set credentials for authentication
+     *
+     * Replaces the current credentials in place. This mutates the shared client
+     * instance, so all resource namespaces attached to this client will immediately
+     * use the new credentials on subsequent requests.
+     *
+     * Note: This is not safe for concurrent requests. For concurrency-safe
+     * credential switching, use Freelo::withCredentials() instead.
+     */
+    public function setCredentials(Credentials $credentials, ?string $userAgent = null): void
+    {
+        $this->credentials = $credentials;
+        if ($userAgent !== null) {
+            $this->userAgent = $userAgent;
+        }
+    }
+
+    /**
+     * Get current credentials (may be null if using lazy initialization)
+     */
+    public function getCredentials(): ?Credentials
+    {
+        return $this->credentials;
     }
 
     /**
@@ -208,6 +234,11 @@ class FreeloClient
         ];
 
         // Add authentication headers
+        if ($this->credentials === null) {
+            throw new ApiException(
+                'Credentials not set. Use setCredentials() to provide them before making API requests.',
+            );
+        }
         $headers = array_merge($headers, $this->credentials->getAuthHeaders());
 
         // Add custom headers from options

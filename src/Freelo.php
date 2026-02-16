@@ -8,6 +8,7 @@ use Freelo\Sdk\Auth\Credentials;
 use Freelo\Sdk\Batch\BatchRequest;
 use Freelo\Sdk\Http\ClientFactory;
 use Freelo\Sdk\Http\FreeloClient;
+use Freelo\Sdk\Http\Response;
 use Freelo\Sdk\Resource\CommentResource;
 use Freelo\Sdk\Resource\CustomFieldResource;
 use Freelo\Sdk\Resource\EventResource;
@@ -49,6 +50,9 @@ use Psr\SimpleCache\CacheInterface;
 class Freelo
 {
     private readonly FreeloClient $client;
+    private ClientInterface $httpClient;
+    private RequestFactoryInterface $requestFactory;
+    private StreamFactoryInterface $streamFactory;
 
     private ?ProjectResource $projectResource = null;
     private ?TaskResource $taskResource = null;
@@ -71,24 +75,29 @@ class Freelo
     private ?SearchResource $searchResource = null;
 
     public function __construct(
-        private readonly Credentials $credentials,
+        private ?Credentials $credentials = null,
         ?ClientInterface $httpClient = null,
         ?RequestFactoryInterface $requestFactory = null,
         ?StreamFactoryInterface $streamFactory = null,
         private readonly ?CacheInterface $cache = null,
+        ?string $userAgent = null,
     ) {
         // Use provided clients or discover them
-        $httpClient ??= ClientFactory::createClient();
-        $requestFactory ??= ClientFactory::createRequestFactory();
-        $streamFactory ??= ClientFactory::createStreamFactory();
+        $this->httpClient = $httpClient ?? ClientFactory::createClient();
+        $this->requestFactory = $requestFactory ?? ClientFactory::createRequestFactory();
+        $this->streamFactory = $streamFactory ?? ClientFactory::createStreamFactory();
 
         // Create the HTTP client
         $this->client = new FreeloClient(
-            $httpClient,
-            $requestFactory,
-            $streamFactory,
+            $this->httpClient,
+            $this->requestFactory,
+            $this->streamFactory,
             $this->credentials,
         );
+
+        if ($userAgent !== null) {
+            $this->client->setUserAgent($userAgent);
+        }
     }
 
     /**
@@ -294,11 +303,84 @@ class Freelo
     }
 
     /**
-     * Get credentials
+     * Get credentials (may be null if using lazy initialization)
      */
-    public function getCredentials(): Credentials
+    public function getCredentials(): ?Credentials
     {
         return $this->credentials;
+    }
+
+    /**
+     * Set credentials for authentication
+     *
+     * Replaces the current credentials in place. This mutates the shared client
+     * instance, so all resource namespaces will immediately use the new credentials
+     * on subsequent requests.
+     *
+     * Note: This is not safe for concurrent requests. For concurrency-safe
+     * credential switching, use withCredentials() instead.
+     */
+    public function setCredentials(Credentials $credentials, ?string $userAgent = null): self
+    {
+        $this->credentials = $credentials;
+        $this->client->setCredentials($credentials, $userAgent);
+        return $this;
+    }
+
+    /**
+     * Create a new Freelo instance with different credentials
+     *
+     * Returns a brand-new independent instance that inherits the current
+     * configuration (base URL, user agent, HTTP client, cache) but uses
+     * the provided credentials. The new instance has its own resource
+     * namespace objects and does not share state with the parent.
+     *
+     * This is the concurrency-safe approach for multi-tenant or per-request
+     * credential switching.
+     */
+    public function withCredentials(Credentials $credentials, ?string $userAgent = null): self
+    {
+        $instance = new self(
+            $credentials,
+            $this->httpClient,
+            $this->requestFactory,
+            $this->streamFactory,
+            $this->cache,
+        );
+
+        // Inherit configuration from the parent
+        $instance->setApiUrl($this->getApiUrl());
+        $instance->setUserAgent($userAgent ?? $this->getUserAgent());
+
+        return $instance;
+    }
+
+    /**
+     * Low-level method for calling arbitrary API endpoints
+     *
+     * This is an escape hatch for hitting API endpoints that are not yet
+     * covered by the typed resource classes, or for advanced use cases
+     * where direct control over the request is needed.
+     *
+     * @param string $path Endpoint path (e.g., '/projects' or 'projects/123/tasks')
+     * @param string $method HTTP method ('GET', 'POST', 'PUT', 'PATCH', 'DELETE')
+     * @param array<string, mixed> $data Request body data (sent as JSON)
+     * @param array<string, mixed> $params Query parameters
+     * @return Response
+     */
+    public function call(string $path, string $method, array $data = [], array $params = []): Response
+    {
+        $options = [];
+
+        if (!empty($params)) {
+            $options['query'] = $params;
+        }
+
+        if (!empty($data)) {
+            $options['json'] = $data;
+        }
+
+        return $this->client->request($method, $path, $options);
     }
 
     /**
