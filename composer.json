@@ -59,8 +59,8 @@
         }
     },
     "scripts": {
-        "test": "phpunit",
-        "test:coverage": "phpunit --coverage-html=coverage",
+        "test": "phpunit --no-coverage",
+        "test:coverage": "XDEBUG_MODE=coverage phpunit --coverage-html=coverage",
         "phpstan": "phpstan analyse",
         "phpcs": "phpcs",
         "phpcs:fix": "phpcbf",
