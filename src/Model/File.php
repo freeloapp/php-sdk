@@ -59,7 +59,8 @@ class File
             state: isset($data['state']) && is_array($data['state']) ? State::fromArray($data['state']) : null,
             mimeType: isset($data['mime_type']) ? (string) $data['mime_type'] : null,
             author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
-            project: isset($data['project']) && is_array($data['project']) ? Project::fromArray($data['project']) : null,
+            project: isset($data['project']) && is_array($data['project'])
+                ? Project::fromArray($data['project']) : null,
             directoryUuid: isset($data['directory_uuid']) ? (string) $data['directory_uuid'] : null,
             order: isset($data['order']) ? (int) $data['order'] : null,
             type: isset($data['type']) ? (string) $data['type'] : null,

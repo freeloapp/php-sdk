@@ -24,7 +24,7 @@
     "support": {
         "issues": "https://gitlab.com/freeloapp/php-sdk/-/issues",
         "source": "https://gitlab.com/freeloapp/php-sdk",
-        "docs": "https://gitlab.com/freeloapp/php-sdk/-/blob/main/README.md"
+        "docs": "https://gitlab.com/freeloapp/php-sdk/-/blob/master/README.md"
     },
     "require": {
         "php": "^8.1",

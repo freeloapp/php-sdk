@@ -52,8 +52,10 @@ class Event
             comment: isset($data['comment']) && is_array($data['comment']) ? $data['comment'] : null,
             task: isset($data['task']) && is_array($data['task']) ? $data['task'] : null,
             taskCheck: isset($data['task_check']) && is_array($data['task_check']) ? $data['task_check'] : null,
-            tasklist: isset($data['tasklist']) && is_array($data['tasklist']) ? Tasklist::fromArray($data['tasklist']) : null,
-            project: isset($data['project']) && is_array($data['project']) ? Project::fromArray($data['project']) : null,
+            tasklist: isset($data['tasklist']) && is_array($data['tasklist'])
+                ? Tasklist::fromArray($data['tasklist']) : null,
+            project: isset($data['project']) && is_array($data['project'])
+                ? Project::fromArray($data['project']) : null,
             document: isset($data['document']) && is_array($data['document']) ? $data['document'] : null,
             file: isset($data['file']) && is_array($data['file']) ? $data['file'] : null,
             dueDate: isset($data['due_date']) ? (string) $data['due_date'] : null,

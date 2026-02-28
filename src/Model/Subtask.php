@@ -57,8 +57,10 @@ class Subtask
             author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
             worker: isset($data['worker']) && is_array($data['worker']) ? User::fromArray($data['worker']) : null,
             state: isset($data['state']) && is_array($data['state']) ? State::fromArray($data['state']) : null,
-            project: isset($data['project']) && is_array($data['project']) ? Project::fromArray($data['project']) : null,
-            tasklist: isset($data['tasklist']) && is_array($data['tasklist']) ? Tasklist::fromArray($data['tasklist']) : null,
+            project: isset($data['project']) && is_array($data['project'])
+                ? Project::fromArray($data['project']) : null,
+            tasklist: isset($data['tasklist']) && is_array($data['tasklist'])
+                ? Tasklist::fromArray($data['tasklist']) : null,
             labels: array_map(
                 fn (array $l) => TaskLabel::fromArray($l),
                 $labelsData

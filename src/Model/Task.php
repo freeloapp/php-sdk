@@ -55,7 +55,8 @@ class Task
     {
         $labelsData = isset($data['labels']) && is_array($data['labels']) ? $data['labels'] : [];
         $commentsData = isset($data['comments']) && is_array($data['comments']) ? $data['comments'] : [];
-        $customFieldsData = isset($data['custom_fields']) && is_array($data['custom_fields']) ? $data['custom_fields'] : [];
+        $customFieldsData = isset($data['custom_fields']) && is_array($data['custom_fields'])
+            ? $data['custom_fields'] : [];
 
         return new self(
             id: (int) ($data['id'] ?? 0),
@@ -69,18 +70,26 @@ class Task
             minutes: isset($data['minutes']) ? (int) $data['minutes'] : null,
             countComments: isset($data['count_comments']) ? (int) $data['count_comments'] : null,
             countSubtasks: isset($data['count_subtasks']) ? (int) $data['count_subtasks'] : null,
-            finishedSubtasksCount: isset($data['finished_subtasks_count']) ? (int) $data['finished_subtasks_count'] : null,
+            finishedSubtasksCount: isset($data['finished_subtasks_count'])
+                ? (int) $data['finished_subtasks_count'] : null,
             parentTaskId: isset($data['parent_task_id']) ? (int) $data['parent_task_id'] : null,
-            author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
-            worker: isset($data['worker']) && is_array($data['worker']) ? User::fromArray($data['worker']) : null,
-            finishedBy: isset($data['finished_by']) && is_array($data['finished_by']) ? User::fromArray($data['finished_by']) : null,
-            state: isset($data['state']) && is_array($data['state']) ? State::fromArray($data['state']) : null,
-            project: isset($data['project']) && is_array($data['project']) ? Project::fromArray($data['project']) : null,
-            tasklist: isset($data['tasklist']) && is_array($data['tasklist']) ? Tasklist::fromArray($data['tasklist']) : null,
-            cost: isset($data['cost']) && is_array($data['cost']) ? Currency::fromArray($data['cost']) : null,
-            totalTimeEstimate: isset($data['total_time_estimate']) && is_array($data['total_time_estimate'])
-                ? TimeEstimate::fromArray($data['total_time_estimate'])
-                : null,
+            author: isset($data['author']) && is_array($data['author'])
+                ? User::fromArray($data['author']) : null,
+            worker: isset($data['worker']) && is_array($data['worker'])
+                ? User::fromArray($data['worker']) : null,
+            finishedBy: isset($data['finished_by']) && is_array($data['finished_by'])
+                ? User::fromArray($data['finished_by']) : null,
+            state: isset($data['state']) && is_array($data['state'])
+                ? State::fromArray($data['state']) : null,
+            project: isset($data['project']) && is_array($data['project'])
+                ? Project::fromArray($data['project']) : null,
+            tasklist: isset($data['tasklist']) && is_array($data['tasklist'])
+                ? Tasklist::fromArray($data['tasklist']) : null,
+            cost: isset($data['cost']) && is_array($data['cost'])
+                ? Currency::fromArray($data['cost']) : null,
+            totalTimeEstimate: isset($data['total_time_estimate'])
+                && is_array($data['total_time_estimate'])
+                ? TimeEstimate::fromArray($data['total_time_estimate']) : null,
             labels: array_map(
                 fn (array $l) => TaskLabel::fromArray($l),
                 $labelsData
@@ -93,7 +102,9 @@ class Task
                 fn (array $cf) => CustomField::fromArray($cf),
                 $customFieldsData
             ),
-            usersTimeEstimates: isset($data['users_time_estimates']) && is_array($data['users_time_estimates']) ? $data['users_time_estimates'] : [],
+            usersTimeEstimates: isset($data['users_time_estimates'])
+                && is_array($data['users_time_estimates'])
+                ? $data['users_time_estimates'] : [],
             data: $data,
         );
     }

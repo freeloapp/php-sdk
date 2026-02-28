@@ -32,7 +32,8 @@ class User
             id: (int) ($data['id'] ?? 0),
             fullname: isset($data['fullname']) ? (string) $data['fullname'] : '',
             email: isset($data['email']) ? (string) $data['email'] : null,
-            hourRate: isset($data['hour_rate']) && is_array($data['hour_rate']) ? HourRate::fromArray($data['hour_rate']) : null,
+            hourRate: isset($data['hour_rate']) && is_array($data['hour_rate'])
+                ? HourRate::fromArray($data['hour_rate']) : null,
             data: $data,
         );
     }

@@ -52,7 +52,8 @@ class Project
             minutesBudget: isset($data['minutes_budget']) ? (int) $data['minutes_budget'] : null,
             budget: isset($data['budget']) && is_array($data['budget']) ? Currency::fromArray($data['budget']) : null,
             realMinutesSpent: isset($data['real_minutes_spent']) ? (int) $data['real_minutes_spent'] : null,
-            realCost: isset($data['real_cost']) && is_array($data['real_cost']) ? Currency::fromArray($data['real_cost']) : null,
+            realCost: isset($data['real_cost']) && is_array($data['real_cost'])
+                ? Currency::fromArray($data['real_cost']) : null,
             client: isset($data['client']) && is_array($data['client']) ? Client::fromArray($data['client']) : null,
             tasklists: array_map(
                 fn (array $t) => Tasklist::fromArray($t),

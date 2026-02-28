@@ -55,8 +55,10 @@ class Notification
             isUnread: isset($data['is_unread']) ? (bool) $data['is_unread'] : null,
             isNew: isset($data['is_new']) ? (bool) $data['is_new'] : null,
             task: isset($data['task']) && is_array($data['task']) ? $data['task'] : null,
-            tasklist: isset($data['tasklist']) && is_array($data['tasklist']) ? Tasklist::fromArray($data['tasklist']) : null,
-            project: isset($data['project']) && is_array($data['project']) ? Project::fromArray($data['project']) : null,
+            tasklist: isset($data['tasklist']) && is_array($data['tasklist'])
+                ? Tasklist::fromArray($data['tasklist']) : null,
+            project: isset($data['project']) && is_array($data['project'])
+                ? Project::fromArray($data['project']) : null,
             comment: isset($data['comment']) && is_array($data['comment']) ? $data['comment'] : null,
             document: isset($data['document']) && is_array($data['document']) ? $data['document'] : null,
             file: isset($data['file']) && is_array($data['file']) ? $data['file'] : null,

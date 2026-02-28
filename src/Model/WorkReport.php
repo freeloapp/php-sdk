@@ -48,11 +48,13 @@ class WorkReport
             dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
             dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
             dateReported: isset($data['date_reported']) ? (string) $data['date_reported'] : null,
-            author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
+            author: isset($data['author']) && is_array($data['author'])
+                ? User::fromArray($data['author']) : null,
             worker: is_array($workerData) ? User::fromArray($workerData) : null,
             cost: isset($data['cost']) && is_array($data['cost']) ? Currency::fromArray($data['cost']) : null,
             task: isset($data['task']) && is_array($data['task']) ? $data['task'] : null,
-            tasklist: isset($data['tasklist']) && is_array($data['tasklist']) ? Tasklist::fromArray($data['tasklist']) : null,
+            tasklist: isset($data['tasklist']) && is_array($data['tasklist'])
+                ? Tasklist::fromArray($data['tasklist']) : null,
             project: isset($data['project']) && is_array($data['project']) ? $data['project'] : null,
             data: $data,
         );

@@ -43,10 +43,12 @@ class Tasklist
             dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
             dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
             state: isset($data['state']) && is_array($data['state']) ? State::fromArray($data['state']) : null,
-            project: isset($data['project']) && is_array($data['project']) ? Project::fromArray($data['project']) : null,
+            project: isset($data['project']) && is_array($data['project'])
+                ? Project::fromArray($data['project']) : null,
             budget: isset($data['budget']) && is_array($data['budget']) ? Currency::fromArray($data['budget']) : null,
             realMinutesSpent: isset($data['real_minutes_spent']) ? (int) $data['real_minutes_spent'] : null,
-            realCost: isset($data['real_cost']) && is_array($data['real_cost']) ? Currency::fromArray($data['real_cost']) : null,
+            realCost: isset($data['real_cost']) && is_array($data['real_cost'])
+                ? Currency::fromArray($data['real_cost']) : null,
             labels: array_map(
                 fn (array $l) => TaskLabel::fromArray($l),
                 $labelsData

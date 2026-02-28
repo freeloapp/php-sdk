@@ -245,7 +245,9 @@ class FreeloClientTest extends TestCase
         );
 
         $this->expectException(ApiException::class);
-        $this->expectExceptionMessage('Credentials not set. Use setCredentials() to provide them before making API requests.');
+        $this->expectExceptionMessage(
+            'Credentials not set. Use setCredentials() to provide them before making API requests.'
+        );
 
         $client->get('projects');
     }

@@ -48,7 +48,8 @@ class Note
             dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
             state: isset($data['state']) && is_array($data['state']) ? State::fromArray($data['state']) : null,
             author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
-            project: isset($data['project']) && is_array($data['project']) ? Project::fromArray($data['project']) : null,
+            project: isset($data['project']) && is_array($data['project'])
+                ? Project::fromArray($data['project']) : null,
             projectId: isset($data['project_id']) ? (int) $data['project_id'] : null,
             files: array_map(
                 fn (array $f) => File::fromArray($f),

@@ -47,7 +47,8 @@ class Comment
     {
         $content = $data['content'] ?? $data['text'] ?? null;
         $filesData = isset($data['files']) && is_array($data['files']) ? $data['files'] : [];
-        $reactionsData = isset($data['comments_reactions']) && is_array($data['comments_reactions']) ? $data['comments_reactions'] : [];
+        $reactionsData = isset($data['comments_reactions']) && is_array($data['comments_reactions'])
+            ? $data['comments_reactions'] : [];
 
         return new self(
             id: (int) ($data['id'] ?? 0),
@@ -55,10 +56,13 @@ class Comment
             content: $content !== null ? (string) $content : null,
             dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
             dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
-            author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
+            author: isset($data['author']) && is_array($data['author'])
+                ? User::fromArray($data['author']) : null,
             task: isset($data['task']) && is_array($data['task']) ? $data['task'] : null,
-            tasklist: isset($data['tasklist']) && is_array($data['tasklist']) ? Tasklist::fromArray($data['tasklist']) : null,
-            project: isset($data['project']) && is_array($data['project']) ? Project::fromArray($data['project']) : null,
+            tasklist: isset($data['tasklist']) && is_array($data['tasklist'])
+                ? Tasklist::fromArray($data['tasklist']) : null,
+            project: isset($data['project']) && is_array($data['project'])
+                ? Project::fromArray($data['project']) : null,
             document: isset($data['document']) && is_array($data['document']) ? $data['document'] : null,
             link: isset($data['link']) && is_array($data['link']) ? $data['link'] : null,
             file: isset($data['file']) && is_array($data['file']) ? $data['file'] : null,
