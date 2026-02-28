@@ -2,59 +2,66 @@ stages:
   - test
   - quality
 
-# Cache Composer dependencies between jobs
-.composer-cache: &composer-cache
+# Install Composer into bare php:*-cli images
+.install-composer: &install-composer
+  before_script:
+    - apt-get update -qq && apt-get install -yqq git unzip libzip-dev > /dev/null
+    - docker-php-ext-install zip > /dev/null
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# Template for test jobs — uses `composer update` so each PHP version
+# resolves its own compatible dependency tree.
+.test-job:
+  <<: *install-composer
+  stage: test
   cache:
-    key: composer-${CI_COMMIT_REF_SLUG}
+    key: composer-${CI_JOB_NAME}
     paths:
       - vendor/
     policy: pull-push
+  script:
+    - composer update --prefer-dist --no-progress --no-interaction
+    - composer test
 
-# Template for PHP jobs
-.php-job:
-  <<: *composer-cache
-  before_script:
+# Template for quality jobs — uses `composer install` from lock file.
+.quality-job:
+  <<: *install-composer
+  stage: quality
+  cache:
+    key: composer-quality
+    paths:
+      - vendor/
+    policy: pull-push
+  script:
     - composer install --prefer-dist --no-progress --no-interaction
 
 # Test matrix across PHP versions
 test:php8.1:
-  extends: .php-job
-  stage: test
+  extends: .test-job
   image: php:8.1-cli
-  script:
-    - composer test
 
 test:php8.2:
-  extends: .php-job
-  stage: test
+  extends: .test-job
   image: php:8.2-cli
-  script:
-    - composer test
 
 test:php8.3:
-  extends: .php-job
-  stage: test
+  extends: .test-job
   image: php:8.3-cli
-  script:
-    - composer test
 
 test:php8.4:
-  extends: .php-job
-  stage: test
+  extends: .test-job
   image: php:8.4-cli
-  script:
-    - composer test
 
 phpstan:
-  extends: .php-job
-  stage: quality
+  extends: .quality-job
   image: php:8.4-cli
   script:
+    - composer install --prefer-dist --no-progress --no-interaction
     - composer phpstan
 
 phpcs:
-  extends: .php-job
-  stage: quality
+  extends: .quality-job
   image: php:8.4-cli
   script:
+    - composer install --prefer-dist --no-progress --no-interaction
     - composer phpcs
