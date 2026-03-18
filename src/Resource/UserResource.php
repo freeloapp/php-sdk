@@ -26,6 +26,19 @@ class UserResource extends AbstractResource
     }
 
     /**
+     * Get the currently authenticated user
+     *
+     * @return array<string, mixed>
+     * @throws ApiException
+     */
+    public function me(): array
+    {
+        $response = $this->client->get('users/me');
+
+        return $this->parser->parseSingle($response);
+    }
+
+    /**
      * Get all users (coworkers) - paginated
      *
      * @param array<string, mixed> $filters

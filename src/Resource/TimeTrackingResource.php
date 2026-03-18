@@ -20,6 +20,27 @@ class TimeTrackingResource extends AbstractResource
     }
 
     /**
+     * Get current time tracking status
+     *
+     * Returns null when no active tracking session (204 response),
+     * or the active session data when tracking is running (200 response).
+     *
+     * @return array<string, mixed>|null
+     * @throws ApiException
+     */
+    public function status(): ?array
+    {
+        $response = $this->client->get('timetracking/status');
+        $response->throwIfError();
+
+        if ($response->getStatusCode() === 204) {
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    /**
      * Start time tracking
      *
      * @throws ApiException

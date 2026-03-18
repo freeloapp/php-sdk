@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-18
+
 ### Added
+
+#### API Coverage
+- **New endpoints**:
+  - `UserResource::me()` — `GET /users/me` (get authenticated user)
+  - `TimeTrackingResource::status()` — `GET /timetracking/status` (get active tracking session)
+  - `InvoiceResource::getReportsJson()` — `GET /issued-invoice/{id}/reports-json` (invoice work reports)
+- **New models**: `TaskBasic`, `TaskWork`, `WorkReportExtended`
+- **Updated models**: `Task` now includes `trackingUsers` field
+- **OpenAPI auto-generation**: Generator script (`scripts/generate-models.php`) parses the OpenAPI spec
+  and generates model classes into `src/Generated/Model/` with `fromArray()`/`toArray()` pattern
+- **CI workflow**: `.github/workflows/openapi-check.yml` verifies generated code stays in sync with spec
+
+### Changed
+- Updated `homepage` and `support` URLs from GitLab to GitHub
 
 #### Testing & Documentation (Phase 6)
 - **Comprehensive Model Tests**: Added unit tests for all model classes
@@ -115,5 +131,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Code coverage reporting
 
-[Unreleased]: https://gitlab.com/freeloapp/php-sdk/-/compare/v1.0.0...HEAD
-[1.0.0]: https://gitlab.com/freeloapp/php-sdk/-/releases/v1.0.0
+[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/freeloapp/php-sdk/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/freeloapp/php-sdk/releases/tag/v1.0.0

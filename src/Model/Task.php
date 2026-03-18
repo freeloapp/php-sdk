@@ -13,6 +13,7 @@ class Task
      * @param TaskLabel[] $labels
      * @param Comment[] $comments
      * @param CustomField[] $customFields
+     * @param User[] $trackingUsers
      * @param array<string, mixed> $usersTimeEstimates
      * @param array<string, mixed> $data
      */
@@ -41,6 +42,7 @@ class Task
         public readonly array $labels = [],
         public readonly array $comments = [],
         public readonly array $customFields = [],
+        public readonly array $trackingUsers = [],
         public readonly array $usersTimeEstimates = [],
         public readonly array $data = [],
     ) {
@@ -57,6 +59,8 @@ class Task
         $commentsData = isset($data['comments']) && is_array($data['comments']) ? $data['comments'] : [];
         $customFieldsData = isset($data['custom_fields']) && is_array($data['custom_fields'])
             ? $data['custom_fields'] : [];
+        $trackingUsersData = isset($data['tracking_users']) && is_array($data['tracking_users'])
+            ? $data['tracking_users'] : [];
 
         return new self(
             id: (int) ($data['id'] ?? 0),
@@ -101,6 +105,10 @@ class Task
             customFields: array_map(
                 fn (array $cf) => CustomField::fromArray($cf),
                 $customFieldsData
+            ),
+            trackingUsers: array_map(
+                fn (array $u) => User::fromArray($u),
+                $trackingUsersData
             ),
             usersTimeEstimates: isset($data['users_time_estimates'])
                 && is_array($data['users_time_estimates'])

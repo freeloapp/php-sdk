@@ -17,6 +17,7 @@
     <arg value="s"/>
 
     <!-- Ignore specific patterns -->
+    <exclude-pattern>*/src/Generated/*</exclude-pattern>
     <exclude-pattern>*/tests/fixtures/*</exclude-pattern>
     <exclude-pattern>*/vendor/*</exclude-pattern>
     <exclude-pattern>*/coverage/*</exclude-pattern>
