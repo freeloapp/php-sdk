@@ -1743,6 +1743,12 @@ paths:
       tags:
         - Task Labels
       summary: Add task labels to task
+      description: >
+        Supports two input modes per label:
+        (1) UUID only — assigns an existing label by UUID as-is.
+        (2) Name-based — provide name (required), optionally color and uuid.
+        If color is omitted it defaults to #77787a (gray). If uuid is omitted it is auto-generated.
+        An existing label is reused when both name AND color match; otherwise a new label is created.
       operationId: addTaskLabelsToTask
       parameters:
         - $ref: '#/components/parameters/TaskIdParam'
@@ -1758,7 +1764,7 @@ paths:
                 labels:
                   type: array
                   items:
-                    $ref: '#/components/schemas/TaskLabelInput'
+                    $ref: '#/components/schemas/TaskLabelAddInput'
       responses:
         '200':
           description: Successful response
@@ -1772,6 +1778,11 @@ paths:
       tags:
         - Task Labels
       summary: Remove task labels from task
+      description: >
+        Supports three input modes per label:
+        (1) UUID — removes the label identified by UUID.
+        (2) Name only — removes all labels with that name regardless of color.
+        (3) Name + color — removes the label matching both name and color.
       operationId: removeTaskLabelsFromTask
       parameters:
         - $ref: '#/components/parameters/TaskIdParam'
@@ -1787,7 +1798,7 @@ paths:
                 labels:
                   type: array
                   items:
-                    $ref: '#/components/schemas/TaskLabelInput'
+                    $ref: '#/components/schemas/TaskLabelRemoveInput'
       responses:
         '200':
           description: Successful response
@@ -3874,16 +3885,72 @@ components:
         color:
           type: string
 
-    TaskLabelInput:
-      type: object
-      properties:
-        name:
-          type: string
-        color:
-          type: string
-        uuid:
-          type: string
-          format: uuid
+    TaskLabelAddInput:
+      description: >
+        Two input modes:
+        (1) UUID only — reference an existing label by UUID, assigned as-is.
+        (2) Name-based — name is required; color defaults to #77787a if omitted; uuid is auto-generated if omitted.
+        Matching is by name+color — if an existing label matches both, it is reused; otherwise a new label is created.
+      oneOf:
+        - type: object
+          description: Reference an existing label by UUID.
+          required:
+            - uuid
+          properties:
+            uuid:
+              type: string
+              format: uuid
+          additionalProperties: false
+        - type: object
+          description: Create or match a label by name and color.
+          required:
+            - name
+          properties:
+            name:
+              type: string
+            color:
+              type: string
+              default: '#77787a'
+              description: 'Label color hex code. Defaults to #77787a (gray) if not provided.'
+            uuid:
+              type: string
+              format: uuid
+              description: 'Optional UUID for the label. Auto-generated if omitted.'
+
+    TaskLabelRemoveInput:
+      description: >
+        Three input modes:
+        (1) UUID — removes the label identified by UUID.
+        (2) Name only — removes all labels with that name regardless of color.
+        (3) Name + color — removes the label matching both name and color.
+      oneOf:
+        - type: object
+          description: Remove a label by UUID.
+          required:
+            - uuid
+          properties:
+            uuid:
+              type: string
+              format: uuid
+          additionalProperties: false
+        - type: object
+          description: Remove all labels with the given name (any color).
+          required:
+            - name
+          properties:
+            name:
+              type: string
+          additionalProperties: false
+        - type: object
+          description: Remove the label matching both name and color.
+          required:
+            - name
+            - color
+          properties:
+            name:
+              type: string
+            color:
+              type: string
 
     TimeEstimate:
       type: object
@@ -4005,12 +4072,7 @@ components:
         labels:
           type: array
           items:
-            type: object
-            properties:
-              name:
-                type: string
-              color:
-                type: string
+            $ref: '#/components/schemas/TaskLabelAddInput'
         tracking_users_ids:
           type: array
           items:
@@ -4160,7 +4222,7 @@ components:
         labels:
           type: array
           items:
-            $ref: '#/components/schemas/TaskLabelInput'
+            $ref: '#/components/schemas/TaskLabelAddInput'
         tracking_users_ids:
           type: array
           items:

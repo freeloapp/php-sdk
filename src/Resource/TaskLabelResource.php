@@ -34,7 +34,11 @@ class TaskLabelResource extends AbstractResource
     /**
      * Add labels to a task
      *
-     * @param array<int, array{name: string, color?: string}> $labels Array of label definitions
+     * Each label supports two input modes:
+     * (1) UUID only — assigns an existing label by UUID.
+     * (2) Name-based — name (required), optionally color and uuid.
+     *
+     * @param array<int, array{uuid?: string, name?: string, color?: string}> $labels
      * @throws ApiException
      */
     public function addToTask(int $taskId, array $labels): bool
@@ -50,7 +54,12 @@ class TaskLabelResource extends AbstractResource
     /**
      * Remove labels from a task
      *
-     * @param array<int, array{name: string, color?: string}> $labels Array of label definitions
+     * Each label supports three input modes:
+     * (1) UUID — removes the label identified by UUID.
+     * (2) Name only — removes all labels with that name.
+     * (3) Name + color — removes the label matching both.
+     *
+     * @param array<int, array{uuid?: string, name?: string, color?: string}> $labels
      * @throws ApiException
      */
     public function removeFromTask(int $taskId, array $labels): bool

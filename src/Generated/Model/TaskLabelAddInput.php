@@ -9,12 +9,12 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
-class TaskLabelInput
+class TaskLabelAddInput
 {
     public function __construct(
+        public readonly ?string $uuid = null,
         public readonly ?string $name = null,
         public readonly ?string $color = null,
-        public readonly ?string $uuid = null,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -26,9 +26,9 @@ class TaskLabelInput
     public static function fromArray(array $data): self
     {
         return new self(
+            uuid: isset($data['uuid']) ? (string) $data['uuid'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
             color: isset($data['color']) ? (string) $data['color'] : null,
-            uuid: isset($data['uuid']) ? (string) $data['uuid'] : null,
             data: $data,
         );
     }

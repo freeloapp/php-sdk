@@ -81,6 +81,35 @@ echo "Generated {$generated} model classes in src/Generated/Model/\n";
  */
 function resolveAllOf(array $schema, array $allSchemas): array
 {
+    // Handle oneOf / anyOf: merge all variant properties, mark none as required
+    $compositeKey = null;
+    if (isset($schema['oneOf'])) {
+        $compositeKey = 'oneOf';
+    } elseif (isset($schema['anyOf'])) {
+        $compositeKey = 'anyOf';
+    }
+
+    if ($compositeKey !== null) {
+        $mergedProperties = [];
+        foreach ($schema[$compositeKey] as $variant) {
+            if (isset($variant['$ref'])) {
+                $refName = resolveRefName($variant['$ref']);
+                if (isset($allSchemas[$refName])) {
+                    $resolved = resolveAllOf($allSchemas[$refName], $allSchemas);
+                    $mergedProperties = array_merge($mergedProperties, $resolved['properties'] ?? []);
+                }
+            } else {
+                $resolved = resolveAllOf($variant, $allSchemas);
+                $mergedProperties = array_merge($mergedProperties, $resolved['properties'] ?? []);
+            }
+        }
+
+        return [
+            'properties' => $mergedProperties,
+            'required' => [],
+        ];
+    }
+
     if (!isset($schema['allOf'])) {
         return $schema;
     }
