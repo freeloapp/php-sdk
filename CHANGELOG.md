@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-10
+
+### Added
+- **oneOf/anyOf schema support** in OpenAPI model generator — merges variant properties into flat nullable models
+
+### Changed
+- **Updated OpenAPI spec** from upstream API (`TaskLabelInput` replaced by `TaskLabelAddInput` and `TaskLabelRemoveInput` with oneOf variants)
+- **TaskLabelResource** PHPDoc updated to document all label input modes (UUID-only, name-based, name+color)
+
 ## [1.1.0] - 2026-03-18
 
 ### Added
@@ -131,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Code coverage reporting
 
-[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/freeloapp/php-sdk/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/freeloapp/php-sdk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/freeloapp/php-sdk/releases/tag/v1.0.0
