@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * FileUpload model.
+ */
 class FileUpload
 {
     public function __construct(

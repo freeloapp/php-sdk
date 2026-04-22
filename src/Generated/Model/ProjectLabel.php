@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * ProjectLabel model.
+ */
 class ProjectLabel
 {
     public function __construct(

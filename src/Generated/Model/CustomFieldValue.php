@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * CustomFieldValue model.
+ */
 class CustomFieldValue
 {
     public function __construct(

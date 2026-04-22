@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * Event model.
+ */
 class Event
 {
     public function __construct(

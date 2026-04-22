@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * UserBasic model.
+ */
 class UserBasic
 {
     public function __construct(

@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * TaskLabel model.
+ */
 class TaskLabel
 {
     public function __construct(

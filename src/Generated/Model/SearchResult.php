@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * SearchResult model.
+ */
 class SearchResult
 {
     public function __construct(

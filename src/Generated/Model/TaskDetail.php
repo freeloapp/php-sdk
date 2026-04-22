@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * TaskDetail model.
+ */
 class TaskDetail
 {
     public function __construct(

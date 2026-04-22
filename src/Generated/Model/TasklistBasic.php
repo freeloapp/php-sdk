@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * TasklistBasic model.
+ */
 class TasklistBasic
 {
     public function __construct(

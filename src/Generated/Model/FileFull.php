@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * FileFull model.
+ */
 class FileFull
 {
     public function __construct(

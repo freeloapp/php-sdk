@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * PaginatedResponse model.
+ */
 class PaginatedResponse
 {
     public function __construct(

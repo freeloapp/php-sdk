@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * UserTimeEstimate model.
+ */
 class UserTimeEstimate
 {
     public function __construct(

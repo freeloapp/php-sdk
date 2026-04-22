@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * CustomFieldEnumOption model.
+ */
 class CustomFieldEnumOption
 {
     public function __construct(

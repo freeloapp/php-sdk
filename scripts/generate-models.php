@@ -64,7 +64,8 @@ foreach ($schemas as $schemaName => $schema) {
 
     $required = $resolvedSchema['required'] ?? [];
     $className = sanitizeClassName($schemaName);
-    $code = generateModelClass($className, $properties, $required, $schemas);
+    $description = extractSchemaDescription($schema, $schemas);
+    $code = generateModelClass($className, $properties, $required, $schemas, $description);
 
     file_put_contents("{$outputDir}/{$className}.php", $code);
     $generated++;
@@ -160,6 +161,59 @@ function snakeToCamel(string $snake): string
 }
 
 /**
+ * Pull a human-readable description from the schema, descending into allOf/oneOf/anyOf
+ * if only variants carry it.
+ *
+ * @param array<string, mixed> $schema
+ * @param array<string, mixed> $allSchemas
+ */
+function extractSchemaDescription(array $schema, array $allSchemas): ?string
+{
+    if (!empty($schema['description']) && is_string($schema['description'])) {
+        return trim($schema['description']);
+    }
+
+    foreach (['allOf', 'oneOf', 'anyOf'] as $key) {
+        if (!isset($schema[$key]) || !is_array($schema[$key])) {
+            continue;
+        }
+        foreach ($schema[$key] as $part) {
+            if (isset($part['$ref'])) {
+                $refName = resolveRefName($part['$ref']);
+                if (isset($allSchemas[$refName])) {
+                    $nested = extractSchemaDescription($allSchemas[$refName], $allSchemas);
+                    if ($nested !== null) {
+                        return $nested;
+                    }
+                }
+            } elseif (!empty($part['description']) && is_string($part['description'])) {
+                return trim($part['description']);
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Turn a free-form description into PHPDoc body lines (prefixed with " * ").
+ */
+function formatDescriptionAsPhpDoc(?string $description): string
+{
+    if ($description === null || $description === '') {
+        return '';
+    }
+
+    $lines = preg_split('/\R/', $description) ?: [];
+    $formatted = array_map(
+        fn(string $line) => rtrim(' * ' . $line),
+        $lines,
+    );
+
+    return implode("\n", $formatted) . "\n *\n";
+}
+
+/**
  * @param array<string, mixed> $properties
  * @param string[] $required
  * @param array<string, mixed> $allSchemas
@@ -169,6 +223,7 @@ function generateModelClass(
     array $properties,
     array $required,
     array $allSchemas,
+    ?string $description = null,
 ): string {
     $constructorParams = [];
     $fromArrayAssignments = [];
@@ -196,6 +251,7 @@ function generateModelClass(
 
     $constructorBlock = implode("\n", $constructorParams);
     $fromArrayBlock = implode("\n", $fromArrayAssignments);
+    $descriptionBlock = formatDescriptionAsPhpDoc($description);
 
     return <<<PHP
 <?php
@@ -209,6 +265,9 @@ declare(strict_types=1);
 
 namespace Freelo\\Sdk\\Generated\\Model;
 
+/**
+{$descriptionBlock} * {$className} model.
+ */
 class {$className}
 {
     public function __construct(

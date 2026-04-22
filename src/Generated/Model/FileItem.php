@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * FileItem model.
+ */
 class FileItem
 {
     public function __construct(

@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * Currency model.
+ */
 class Currency
 {
     public function __construct(

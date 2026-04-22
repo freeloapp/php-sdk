@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * IssuedInvoice model.
+ */
 class IssuedInvoice
 {
     public function __construct(

@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * SuccessResponse model.
+ */
 class SuccessResponse
 {
     public function __construct(

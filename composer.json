@@ -69,8 +69,16 @@
             "@phpstan",
             "@phpcs"
         ],
-        "generate": "php scripts/generate-models.php",
-        "generate:check": "php scripts/generate-models.php && git diff --exit-code src/Generated/",
+        "generate:models": "php scripts/generate-models.php",
+        "generate:endpoints": "php scripts/generate-endpoints-digest.php",
+        "generate": [
+            "@generate:models",
+            "@generate:endpoints"
+        ],
+        "generate:check": [
+            "@generate",
+            "git diff --exit-code src/Generated/ docs/ENDPOINTS.md"
+        ],
         "check": [
             "@test",
             "@analyse"

@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * TasklistWithBudget model.
+ */
 class TasklistWithBudget
 {
     public function __construct(

@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * Notification model.
+ */
 class Notification
 {
     public function __construct(

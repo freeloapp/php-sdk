@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-04-22
+
+### Added
+- **`make build` pipeline** — single command that downloads latest OpenAPI spec, regenerates models, runs static analysis and tests. New Makefile targets: `spec`, `generate`, `build` (chains `spec → generate → analyse → test`). Source URL overridable via `OPENAPI_URL`.
+- **Schema descriptions in generated models** — class-level PHPDoc now carries the description from the OpenAPI schema (descended through `allOf`/`oneOf`/`anyOf` variants when necessary). Gives IDEs and LLMs immediate context, e.g. `TaskLabelAddInput` now documents its dual input modes.
+- **Endpoints digest** — new `scripts/generate-endpoints-digest.php` emits `docs/ENDPOINTS.md` with every endpoint's summary, description, parameters, request body, and responses, grouped by tag. Surfaces `use cases`, `behavior notes`, and `side effects` from the upstream spec so LLMs can work with endpoints without parsing raw YAML. Regenerated alongside models on every `composer generate`.
+- **Split composer generate scripts** — `composer generate:models` and `composer generate:endpoints` are runnable individually; `composer generate` and `composer generate:check` orchestrate both.
+
+### Changed
+- **Regenerated models from upstream spec** — added `TaskRelation` model, updated `TasklistDetail`.
+- **`openapi-check.yml` CI** — now also watches `docs/ENDPOINTS.md` and `scripts/generate-endpoints-digest.php` for drift.
+
 ## [1.2.0] - 2026-04-10
 
 ### Added

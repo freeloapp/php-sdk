@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * ProjectFull model.
+ */
 class ProjectFull
 {
     public function __construct(

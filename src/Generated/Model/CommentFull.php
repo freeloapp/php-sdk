@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * CommentFull model.
+ */
 class CommentFull
 {
     public function __construct(

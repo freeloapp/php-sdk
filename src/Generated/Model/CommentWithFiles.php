@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * CommentWithFiles model.
+ */
 class CommentWithFiles
 {
     public function __construct(

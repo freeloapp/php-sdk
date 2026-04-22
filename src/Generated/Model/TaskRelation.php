@@ -10,12 +10,14 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Generated\Model;
 
 /**
- * ErrorResponse model.
+ * TaskRelation model.
  */
-class ErrorResponse
+class TaskRelation
 {
     public function __construct(
-        public readonly array $errors = [],
+        public readonly ?string $type = null,
+        public readonly ?int $relatedTaskId = null,
+        public readonly ?string $relatedTaskName = null,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -27,8 +29,9 @@ class ErrorResponse
     public static function fromArray(array $data): self
     {
         return new self(
-            errors: isset($data['errors']) && is_array($data['errors'])
-                ? $data['errors'] : [],
+            type: isset($data['type']) ? (string) $data['type'] : null,
+            relatedTaskId: isset($data['related_task_id']) ? (int) $data['related_task_id'] : null,
+            relatedTaskName: isset($data['related_task_name']) ? (string) $data['related_task_name'] : null,
             data: $data,
         );
     }

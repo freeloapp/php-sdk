@@ -9,6 +9,11 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * Three input modes: (1) UUID — removes the label identified by UUID. (2) Name only — removes all labels with that name regardless of color. (3) Name + color — removes the label matching both name and color.
+ *
+ * TaskLabelRemoveInput model.
+ */
 class TaskLabelRemoveInput
 {
     public function __construct(

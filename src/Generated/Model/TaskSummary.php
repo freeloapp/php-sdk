@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * TaskSummary model.
+ */
 class TaskSummary
 {
     public function __construct(

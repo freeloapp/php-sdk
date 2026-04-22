@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * Subtask model.
+ */
 class Subtask
 {
     public function __construct(

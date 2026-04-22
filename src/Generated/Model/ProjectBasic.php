@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * ProjectBasic model.
+ */
 class ProjectBasic
 {
     public function __construct(

@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * WorkReport model.
+ */
 class WorkReport
 {
     public function __construct(

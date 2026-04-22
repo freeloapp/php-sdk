@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Generated\Model;
 
+/**
+ * TimeEstimate model.
+ */
 class TimeEstimate
 {
     public function __construct(
