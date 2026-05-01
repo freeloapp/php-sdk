@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents a Freelo tasklist
  */
@@ -16,8 +18,8 @@ class Tasklist
     public function __construct(
         public readonly int $id,
         public readonly string $name,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
         public readonly ?State $state = null,
         public readonly ?Project $project = null,
         public readonly ?Currency $budget = null,
@@ -40,8 +42,8 @@ class Tasklist
         return new self(
             id: (int) ($data['id'] ?? 0),
             name: isset($data['name']) ? (string) $data['name'] : '',
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
+            dateAdd: DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateEditedAt: DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
             state: isset($data['state']) && is_array($data['state']) ? State::fromArray($data['state']) : null,
             project: isset($data['project']) && is_array($data['project'])
                 ? Project::fromArray($data['project']) : null,

@@ -17,8 +17,8 @@ class ProjectWithTasklists
     public function __construct(
         public readonly ?int $id = null,
         public readonly ?string $name = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
         public readonly array $tasklists = [],
         public readonly mixed $client,
         /** @var array<string, mixed> */
@@ -34,8 +34,8 @@ class ProjectWithTasklists
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
+            dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateEditedAt: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
             tasklists: isset($data['tasklists']) && is_array($data['tasklists'])
                 ? $data['tasklists'] : [],
             client: isset($data['client']) ? $data['client'] : null,

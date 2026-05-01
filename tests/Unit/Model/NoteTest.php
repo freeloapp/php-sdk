@@ -6,6 +6,7 @@ namespace Freelo\Sdk\Tests\Unit\Model;
 
 use Freelo\Sdk\Model\Note;
 use Freelo\Sdk\Model\User;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class NoteTest extends TestCase
@@ -15,8 +16,8 @@ class NoteTest extends TestCase
         $data = [
             'id' => 123,
             'content' => 'This is a project note with important information.',
-            'date_add' => '2024-01-01T00:00:00Z',
-            'date_edited_at' => '2024-01-02T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
+            'date_edited_at' => '2024-01-02T00:00:00',
             'author' => [
                 'id' => 456,
                 'fullname' => 'John Doe',
@@ -28,8 +29,8 @@ class NoteTest extends TestCase
 
         $this->assertSame(123, $note->id);
         $this->assertSame('This is a project note with important information.', $note->content);
-        $this->assertSame('2024-01-01T00:00:00Z', $note->dateAdd);
-        $this->assertSame('2024-01-02T00:00:00Z', $note->dateEditedAt);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $note->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-02T00:00:00'), $note->dateEditedAt);
         $this->assertInstanceOf(User::class, $note->author);
         $this->assertSame('John Doe', $note->author->fullname);
         $this->assertSame(789, $note->projectId);
@@ -81,8 +82,8 @@ class NoteTest extends TestCase
         $note = new Note(
             id: 999,
             content: 'Direct construction test',
-            dateAdd: '2024-01-01T00:00:00Z',
-            dateEditedAt: '2024-01-02T00:00:00Z',
+            dateAdd: PragueTime::utc('2024-01-01T00:00:00'),
+            dateEditedAt: PragueTime::utc('2024-01-02T00:00:00'),
             author: $author,
             projectId: 500,
             data: ['custom' => 'data'],

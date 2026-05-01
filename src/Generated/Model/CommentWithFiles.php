@@ -17,7 +17,7 @@ class CommentWithFiles
     public function __construct(
         public readonly ?int $id = null,
         public readonly ?string $content = null,
-        public readonly ?string $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
         public readonly array $files = [],
         public readonly mixed $author,
         public readonly ?bool $isDescription = null,
@@ -35,7 +35,7 @@ class CommentWithFiles
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
             content: isset($data['content']) ? (string) $data['content'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
+            dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
             files: isset($data['files']) && is_array($data['files'])
                 ? $data['files'] : [],
             author: isset($data['author']) ? $data['author'] : null,

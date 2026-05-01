@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents a custom field (supports CustomField, CustomFieldValue, and CustomFieldWithValue schemas)
  */
@@ -18,14 +20,14 @@ class CustomField
         public readonly ?string $typeUuid = null,
         public readonly ?int $projectId = null,
         public readonly ?int $authorId = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
         public readonly ?int $priority = null,
         public readonly mixed $value = null,
         public readonly ?string $valueUuid = null,
         public readonly ?int $valueAuthorId = null,
-        public readonly ?string $valueDateAdd = null,
-        public readonly ?string $valueDateEditedAt = null,
+        public readonly ?\DateTimeImmutable $valueDateAdd = null,
+        public readonly ?\DateTimeImmutable $valueDateEditedAt = null,
         public readonly ?int $taskId = null,
         public readonly array $data = [],
     ) {
@@ -48,14 +50,14 @@ class CustomField
             typeUuid: isset($data['custom_fields_types_uuid']) ? (string) $data['custom_fields_types_uuid'] : null,
             projectId: isset($data['project_id']) ? (int) $data['project_id'] : null,
             authorId: isset($data['author_id']) ? (int) $data['author_id'] : null,
-            dateAdd: $dateAdd !== null ? (string) $dateAdd : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
+            dateAdd: DateTimeParser::parseDateTime($dateAdd),
+            dateEditedAt: DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
             priority: isset($data['priority']) ? (int) $data['priority'] : null,
             value: $data['value'] ?? null,
             valueUuid: isset($data['value_uuid']) ? (string) $data['value_uuid'] : null,
             valueAuthorId: isset($data['value_author_id']) ? (int) $data['value_author_id'] : null,
-            valueDateAdd: isset($data['value_date_add']) ? (string) $data['value_date_add'] : null,
-            valueDateEditedAt: isset($data['value_date_edited_at']) ? (string) $data['value_date_edited_at'] : null,
+            valueDateAdd: DateTimeParser::parseDateTime($data['value_date_add'] ?? null),
+            valueDateEditedAt: DateTimeParser::parseDateTime($data['value_date_edited_at'] ?? null),
             taskId: isset($data['task_id']) ? (int) $data['task_id'] : null,
             data: $data,
         );

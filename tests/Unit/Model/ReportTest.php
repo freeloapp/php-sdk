@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Tests\Unit\Model;
 
 use Freelo\Sdk\Model\Report;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class ReportTest extends TestCase
@@ -16,7 +17,7 @@ class ReportTest extends TestCase
             'type' => 'weekly',
             'format' => 'pdf',
             'url' => 'https://example.com/reports/123.pdf',
-            'date_add' => '2024-01-01T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
         ];
 
         $report = Report::fromArray($data);
@@ -25,7 +26,7 @@ class ReportTest extends TestCase
         $this->assertSame('weekly', $report->type);
         $this->assertSame('pdf', $report->format);
         $this->assertSame('https://example.com/reports/123.pdf', $report->url);
-        $this->assertSame('2024-01-01T00:00:00Z', $report->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $report->dateAdd);
     }
 
     public function testFromArrayWithMinimalData(): void

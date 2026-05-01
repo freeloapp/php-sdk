@@ -16,8 +16,8 @@ class TaskCreate
 {
     public function __construct(
         public readonly string $name,
-        public readonly ?string $dueDate = null,
-        public readonly ?string $dueDateEnd = null,
+        public readonly ?\DateTimeImmutable $dueDate = null,
+        public readonly ?\DateTimeImmutable $dueDateEnd = null,
         public readonly ?int $worker = null,
         public readonly ?string $priorityEnum = null,
         public readonly array $comment = [],
@@ -37,8 +37,8 @@ class TaskCreate
     {
         return new self(
             name: (string) ($data['name'] ?? ''),
-            dueDate: isset($data['due_date']) ? (string) $data['due_date'] : null,
-            dueDateEnd: isset($data['due_date_end']) ? (string) $data['due_date_end'] : null,
+            dueDate: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['due_date'] ?? null),
+            dueDateEnd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['due_date_end'] ?? null),
             worker: isset($data['worker']) ? (int) $data['worker'] : null,
             priorityEnum: isset($data['priority_enum']) ? (string) $data['priority_enum'] : null,
             comment: isset($data['comment']) && is_array($data['comment'])

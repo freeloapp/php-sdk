@@ -313,6 +313,11 @@ function resolvePhpType(array $propSchema, array $allSchemas): string
     }
 
     $type = $propSchema['type'] ?? 'mixed';
+    $format = $propSchema['format'] ?? null;
+
+    if ($type === 'string' && ($format === 'date-time' || $format === 'date')) {
+        return '\\DateTimeImmutable';
+    }
 
     return match ($type) {
         'integer' => 'int',
@@ -327,6 +332,11 @@ function resolvePhpType(array $propSchema, array $allSchemas): string
 
 function generateFromArrayLine(string $apiName, string $camelName, string $phpType, bool $nullable): string
 {
+    if ($phpType === '\\DateTimeImmutable') {
+        return "            {$camelName}: \\Freelo\\Sdk\\Internal\\DateTimeParser::parseDateTime("
+            . "\$data['{$apiName}'] ?? null),";
+    }
+
     $cast = match ($phpType) {
         'int' => "(int) ",
         'float' => "(float) ",

@@ -20,12 +20,12 @@ class CustomFieldWithValue
         public readonly ?int $projectId = null,
         public readonly ?string $name = null,
         public readonly ?int $priority = null,
-        public readonly ?string $fieldDateAdd = null,
+        public readonly ?\DateTimeImmutable $fieldDateAdd = null,
         public readonly ?string $valueUuid = null,
         public readonly ?int $valueAuthorId = null,
         public readonly ?string $value = null,
-        public readonly ?string $valueDateAdd = null,
-        public readonly ?string $valueDateEditedAt = null,
+        public readonly ?\DateTimeImmutable $valueDateAdd = null,
+        public readonly ?\DateTimeImmutable $valueDateEditedAt = null,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -42,12 +42,12 @@ class CustomFieldWithValue
             projectId: isset($data['project_id']) ? (int) $data['project_id'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
             priority: isset($data['priority']) ? (int) $data['priority'] : null,
-            fieldDateAdd: isset($data['field_date_add']) ? (string) $data['field_date_add'] : null,
+            fieldDateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['field_date_add'] ?? null),
             valueUuid: isset($data['value_uuid']) ? (string) $data['value_uuid'] : null,
             valueAuthorId: isset($data['value_author_id']) ? (int) $data['value_author_id'] : null,
             value: isset($data['value']) ? (string) $data['value'] : null,
-            valueDateAdd: isset($data['value_date_add']) ? (string) $data['value_date_add'] : null,
-            valueDateEditedAt: isset($data['value_date_edited_at']) ? (string) $data['value_date_edited_at'] : null,
+            valueDateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['value_date_add'] ?? null),
+            valueDateEditedAt: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['value_date_edited_at'] ?? null),
             data: $data,
         );
     }

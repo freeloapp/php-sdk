@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Http;
 
+use DateTimeImmutable;
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Fluent builder for API filter parameters
  *
@@ -25,6 +28,11 @@ class FilterBuilder
 {
     /** @var array<string, mixed> */
     private array $filters = [];
+
+    private static function formatDate(DateTimeImmutable|string|null $value): ?string
+    {
+        return $value === null ? null : DateTimeParser::formatDate($value);
+    }
 
     /**
      * Create a new FilterBuilder instance
@@ -125,16 +133,18 @@ class FilterBuilder
     /**
      * Filter by date range (created)
      *
-     * @param string|null $from Start date (Y-m-d format)
-     * @param string|null $to End date (Y-m-d format)
+     * @param DateTimeImmutable|string|null $from Start date (Y-m-d, or DateTimeImmutable formatted in Europe/Prague)
+     * @param DateTimeImmutable|string|null $to End date
      */
-    public function createdInRange(?string $from = null, ?string $to = null): self
-    {
+    public function createdInRange(
+        DateTimeImmutable|string|null $from = null,
+        DateTimeImmutable|string|null $to = null,
+    ): self {
         if ($from !== null) {
-            $this->filters['created_in_range']['date_from'] = $from;
+            $this->filters['created_in_range']['date_from'] = self::formatDate($from);
         }
         if ($to !== null) {
-            $this->filters['created_in_range']['date_to'] = $to;
+            $this->filters['created_in_range']['date_to'] = self::formatDate($to);
         }
         return $this;
     }
@@ -142,16 +152,18 @@ class FilterBuilder
     /**
      * Filter by due date range
      *
-     * @param string|null $from Start date (Y-m-d format)
-     * @param string|null $to End date (Y-m-d format)
+     * @param DateTimeImmutable|string|null $from Start date (Y-m-d, or DateTimeImmutable formatted in Europe/Prague)
+     * @param DateTimeImmutable|string|null $to End date
      */
-    public function dueDateRange(?string $from = null, ?string $to = null): self
-    {
+    public function dueDateRange(
+        DateTimeImmutable|string|null $from = null,
+        DateTimeImmutable|string|null $to = null,
+    ): self {
         if ($from !== null) {
-            $this->filters['due_date_range']['date_from'] = $from;
+            $this->filters['due_date_range']['date_from'] = self::formatDate($from);
         }
         if ($to !== null) {
-            $this->filters['due_date_range']['date_to'] = $to;
+            $this->filters['due_date_range']['date_to'] = self::formatDate($to);
         }
         return $this;
     }
@@ -231,16 +243,18 @@ class FilterBuilder
     /**
      * Filter by finished date range
      *
-     * @param string|null $from Start date (Y-m-d format)
-     * @param string|null $to End date (Y-m-d format)
+     * @param DateTimeImmutable|string|null $from Start date (Y-m-d, or DateTimeImmutable formatted in Europe/Prague)
+     * @param DateTimeImmutable|string|null $to End date
      */
-    public function finishedDateRange(?string $from = null, ?string $to = null): self
-    {
+    public function finishedDateRange(
+        DateTimeImmutable|string|null $from = null,
+        DateTimeImmutable|string|null $to = null,
+    ): self {
         if ($from !== null) {
-            $this->filters['finished_date_range']['date_from'] = $from;
+            $this->filters['finished_date_range']['date_from'] = self::formatDate($from);
         }
         if ($to !== null) {
-            $this->filters['finished_date_range']['date_to'] = $to;
+            $this->filters['finished_date_range']['date_to'] = self::formatDate($to);
         }
         return $this;
     }
@@ -259,16 +273,18 @@ class FilterBuilder
     /**
      * Filter by date reported range (for work reports)
      *
-     * @param string|null $from Start date (Y-m-d format)
-     * @param string|null $to End date (Y-m-d format)
+     * @param DateTimeImmutable|string|null $from Start date (Y-m-d, or DateTimeImmutable formatted in Europe/Prague)
+     * @param DateTimeImmutable|string|null $to End date
      */
-    public function dateReportedRange(?string $from = null, ?string $to = null): self
-    {
+    public function dateReportedRange(
+        DateTimeImmutable|string|null $from = null,
+        DateTimeImmutable|string|null $to = null,
+    ): self {
         if ($from !== null) {
-            $this->filters['date_reported_range']['date_from'] = $from;
+            $this->filters['date_reported_range']['date_from'] = self::formatDate($from);
         }
         if ($to !== null) {
-            $this->filters['date_reported_range']['date_to'] = $to;
+            $this->filters['date_reported_range']['date_to'] = self::formatDate($to);
         }
         return $this;
     }
@@ -276,16 +292,18 @@ class FilterBuilder
     /**
      * Filter by date added range (for work reports)
      *
-     * @param string|null $from Start date (Y-m-d format)
-     * @param string|null $to End date (Y-m-d format)
+     * @param DateTimeImmutable|string|null $from Start date (Y-m-d, or DateTimeImmutable formatted in Europe/Prague)
+     * @param DateTimeImmutable|string|null $to End date
      */
-    public function dateAddRange(?string $from = null, ?string $to = null): self
-    {
+    public function dateAddRange(
+        DateTimeImmutable|string|null $from = null,
+        DateTimeImmutable|string|null $to = null,
+    ): self {
         if ($from !== null) {
-            $this->filters['date_add_range']['date_from'] = $from;
+            $this->filters['date_add_range']['date_from'] = self::formatDate($from);
         }
         if ($to !== null) {
-            $this->filters['date_add_range']['date_to'] = $to;
+            $this->filters['date_add_range']['date_to'] = self::formatDate($to);
         }
         return $this;
     }
@@ -293,11 +311,14 @@ class FilterBuilder
     /**
      * Filter by date edited from (for work reports)
      *
-     * @param string $date Date (Y-m-d format)
+     * @param DateTimeImmutable|string $date Date (Y-m-d, or DateTimeImmutable formatted in Europe/Prague)
      */
-    public function dateEditedFrom(string $date): self
+    public function dateEditedFrom(DateTimeImmutable|string $date): self
     {
-        $this->filters['date_edited_from'] = $date;
+        $formatted = self::formatDate($date);
+        if ($formatted !== null) {
+            $this->filters['date_edited_from'] = $formatted;
+        }
         return $this;
     }
 
@@ -337,16 +358,18 @@ class FilterBuilder
     /**
      * Filter by general date range (for events)
      *
-     * @param string|null $from Start date (Y-m-d format)
-     * @param string|null $to End date (Y-m-d format)
+     * @param DateTimeImmutable|string|null $from Start date (Y-m-d, or DateTimeImmutable formatted in Europe/Prague)
+     * @param DateTimeImmutable|string|null $to End date
      */
-    public function dateRange(?string $from = null, ?string $to = null): self
-    {
+    public function dateRange(
+        DateTimeImmutable|string|null $from = null,
+        DateTimeImmutable|string|null $to = null,
+    ): self {
         if ($from !== null) {
-            $this->filters['date_range']['date_from'] = $from;
+            $this->filters['date_range']['date_from'] = self::formatDate($from);
         }
         if ($to !== null) {
-            $this->filters['date_range']['date_to'] = $to;
+            $this->filters['date_range']['date_to'] = self::formatDate($to);
         }
         return $this;
     }

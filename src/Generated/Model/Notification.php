@@ -17,7 +17,7 @@ class Notification
     public function __construct(
         public readonly ?int $id = null,
         public readonly ?string $type = null,
-        public readonly ?string $dateAction = null,
+        public readonly ?\DateTimeImmutable $dateAction = null,
         public readonly mixed $author,
         public readonly mixed $who,
         public readonly ?bool $isUnread = null,
@@ -43,7 +43,7 @@ class Notification
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
             type: isset($data['type']) ? (string) $data['type'] : null,
-            dateAction: isset($data['date_action']) ? (string) $data['date_action'] : null,
+            dateAction: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_action'] ?? null),
             author: isset($data['author']) ? $data['author'] : null,
             who: isset($data['who']) ? $data['who'] : null,
             isUnread: isset($data['is_unread']) ? (bool) $data['is_unread'] : null,

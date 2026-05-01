@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Tests\Unit\Model;
 
 use Freelo\Sdk\Model\Project;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class ProjectTest extends TestCase
@@ -14,8 +15,8 @@ class ProjectTest extends TestCase
         $data = [
             'id' => 123,
             'name' => 'Test Project',
-            'date_add' => '2024-01-01T00:00:00Z',
-            'date_edited_at' => '2024-01-02T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
+            'date_edited_at' => '2024-01-02T00:00:00',
             'extra_field' => 'extra_value',
         ];
 
@@ -23,8 +24,8 @@ class ProjectTest extends TestCase
 
         $this->assertSame(123, $project->id);
         $this->assertSame('Test Project', $project->name);
-        $this->assertSame('2024-01-01T00:00:00Z', $project->dateAdd);
-        $this->assertSame('2024-01-02T00:00:00Z', $project->dateEditedAt);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $project->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-02T00:00:00'), $project->dateEditedAt);
         $this->assertSame($data, $project->data);
     }
 
@@ -61,7 +62,7 @@ class ProjectTest extends TestCase
         $data = [
             'id' => 789,
             'name' => 'Test Project',
-            'date_add' => '2024-01-01T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
             'custom_field' => 'custom_value',
         ];
 
@@ -76,14 +77,14 @@ class ProjectTest extends TestCase
         $project = new Project(
             id: 999,
             name: 'Direct Construction',
-            dateAdd: '2024-01-01T00:00:00Z',
-            dateEditedAt: '2024-01-02T00:00:00Z',
+            dateAdd: PragueTime::utc('2024-01-01T00:00:00'),
+            dateEditedAt: PragueTime::utc('2024-01-02T00:00:00'),
             data: ['custom' => 'data'],
         );
 
         $this->assertSame(999, $project->id);
         $this->assertSame('Direct Construction', $project->name);
-        $this->assertSame('2024-01-01T00:00:00Z', $project->dateAdd);
-        $this->assertSame('2024-01-02T00:00:00Z', $project->dateEditedAt);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $project->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-02T00:00:00'), $project->dateEditedAt);
     }
 }

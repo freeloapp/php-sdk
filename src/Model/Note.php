@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents a project note
  */
@@ -18,8 +20,8 @@ class Note
         public readonly int $id,
         public readonly ?string $name = null,
         public readonly ?string $content = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
         public readonly ?State $state = null,
         public readonly ?User $author = null,
         public readonly ?Project $project = null,
@@ -44,8 +46,8 @@ class Note
             id: (int) ($data['id'] ?? 0),
             name: isset($data['name']) ? (string) $data['name'] : null,
             content: isset($data['content']) ? (string) $data['content'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
+            dateAdd: DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateEditedAt: DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
             state: isset($data['state']) && is_array($data['state']) ? State::fromArray($data['state']) : null,
             author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
             project: isset($data['project']) && is_array($data['project'])

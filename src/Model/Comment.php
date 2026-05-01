@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents a Freelo comment
  */
@@ -22,8 +24,8 @@ class Comment
         public readonly int $id,
         public readonly ?string $uuid = null,
         public readonly ?string $content = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
         public readonly ?User $author = null,
         public readonly ?array $task = null,
         public readonly ?Tasklist $tasklist = null,
@@ -54,8 +56,8 @@ class Comment
             id: (int) ($data['id'] ?? 0),
             uuid: isset($data['uuid']) ? (string) $data['uuid'] : null,
             content: $content !== null ? (string) $content : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
+            dateAdd: DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateEditedAt: DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
             author: isset($data['author']) && is_array($data['author'])
                 ? User::fromArray($data['author']) : null,
             task: isset($data['task']) && is_array($data['task']) ? $data['task'] : null,

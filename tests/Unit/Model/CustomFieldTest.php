@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Tests\Unit\Model;
 
 use Freelo\Sdk\Model\CustomField;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class CustomFieldTest extends TestCase
@@ -17,7 +18,7 @@ class CustomFieldTest extends TestCase
             'custom_fields_types_uuid' => 'type-uuid-123',
             'project_id' => 456,
             'author_id' => 789,
-            'date_add' => '2024-01-01T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
             'priority' => 1,
             'value' => 'high',
         ];
@@ -29,7 +30,7 @@ class CustomFieldTest extends TestCase
         $this->assertSame('type-uuid-123', $field->typeUuid);
         $this->assertSame(456, $field->projectId);
         $this->assertSame(789, $field->authorId);
-        $this->assertSame('2024-01-01T00:00:00Z', $field->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $field->dateAdd);
         $this->assertSame(1, $field->priority);
         $this->assertSame('high', $field->value);
         $this->assertSame($data, $field->data);
@@ -122,7 +123,7 @@ class CustomFieldTest extends TestCase
             typeUuid: 'type-uuid',
             projectId: 100,
             authorId: 200,
-            dateAdd: '2024-01-01T00:00:00Z',
+            dateAdd: PragueTime::utc('2024-01-01T00:00:00'),
             priority: 5,
             value: '2024-01-01',
             data: ['custom' => 'data'],

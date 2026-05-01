@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents an issued invoice (supports both IssuedInvoice and IssuedInvoiceDetail schemas)
  */
@@ -16,9 +18,9 @@ class IssuedInvoice
      */
     public function __construct(
         public readonly int $id,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateFrom = null,
-        public readonly ?string $dateTo = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateFrom = null,
+        public readonly ?\DateTimeImmutable $dateTo = null,
         public readonly ?string $note = null,
         public readonly ?string $currency = null,
         public readonly ?int $minutes = null,
@@ -40,9 +42,9 @@ class IssuedInvoice
 
         return new self(
             id: (int) ($data['id'] ?? 0),
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateFrom: isset($data['date_from']) ? (string) $data['date_from'] : null,
-            dateTo: isset($data['date_to']) ? (string) $data['date_to'] : null,
+            dateAdd: DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateFrom: DateTimeParser::parseDateTime($data['date_from'] ?? null),
+            dateTo: DateTimeParser::parseDateTime($data['date_to'] ?? null),
             note: isset($data['note']) ? (string) $data['note'] : null,
             currency: isset($data['currency']) ? (string) $data['currency'] : null,
             minutes: isset($data['minutes']) ? (int) $data['minutes'] : null,

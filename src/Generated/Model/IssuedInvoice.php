@@ -16,7 +16,7 @@ class IssuedInvoice
 {
     public function __construct(
         public readonly ?int $id = null,
-        public readonly ?string $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
         public readonly ?string $note = null,
         public readonly ?string $currency = null,
         public readonly ?int $minutes = null,
@@ -35,7 +35,7 @@ class IssuedInvoice
     {
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
+            dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
             note: isset($data['note']) ? (string) $data['note'] : null,
             currency: isset($data['currency']) ? (string) $data['currency'] : null,
             minutes: isset($data['minutes']) ? (int) $data['minutes'] : null,

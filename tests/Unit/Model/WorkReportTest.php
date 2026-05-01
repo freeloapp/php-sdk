@@ -8,6 +8,7 @@ use Freelo\Sdk\Model\Currency;
 use Freelo\Sdk\Model\Tasklist;
 use Freelo\Sdk\Model\User;
 use Freelo\Sdk\Model\WorkReport;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class WorkReportTest extends TestCase
@@ -18,8 +19,8 @@ class WorkReportTest extends TestCase
             'id' => 123,
             'minutes' => 120,
             'note' => 'Worked on feature implementation',
-            'date_add' => '2024-01-01T10:00:00Z',
-            'date_edited_at' => '2024-01-02T10:00:00Z',
+            'date_add' => '2024-01-01T10:00:00',
+            'date_edited_at' => '2024-01-02T10:00:00',
             'date_reported' => '2024-01-01',
             'author' => [
                 'id' => 456,
@@ -42,9 +43,9 @@ class WorkReportTest extends TestCase
         $this->assertSame(123, $report->id);
         $this->assertSame(120, $report->minutes);
         $this->assertSame('Worked on feature implementation', $report->note);
-        $this->assertSame('2024-01-01T10:00:00Z', $report->dateAdd);
-        $this->assertSame('2024-01-02T10:00:00Z', $report->dateEditedAt);
-        $this->assertSame('2024-01-01', $report->dateReported);
+        $this->assertEquals(PragueTime::utc('2024-01-01T10:00:00'), $report->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-02T10:00:00'), $report->dateEditedAt);
+        $this->assertEquals(PragueTime::utc('2024-01-01'), $report->dateReported);
         $this->assertInstanceOf(User::class, $report->author);
         $this->assertSame('John Doe', $report->author->fullname);
         $this->assertInstanceOf(User::class, $report->worker);
@@ -128,9 +129,9 @@ class WorkReportTest extends TestCase
             id: 999,
             minutes: 180,
             note: 'Direct construction test',
-            dateAdd: '2024-01-01T00:00:00Z',
-            dateEditedAt: '2024-01-02T00:00:00Z',
-            dateReported: '2024-01-01',
+            dateAdd: PragueTime::utc('2024-01-01T00:00:00'),
+            dateEditedAt: PragueTime::utc('2024-01-02T00:00:00'),
+            dateReported: PragueTime::utc('2024-01-01'),
             author: $author,
             worker: $worker,
             cost: $cost,

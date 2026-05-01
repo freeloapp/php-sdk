@@ -8,6 +8,7 @@ use Freelo\Sdk\Model\Notification;
 use Freelo\Sdk\Model\Project;
 use Freelo\Sdk\Model\Tasklist;
 use Freelo\Sdk\Model\User;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class NotificationTest extends TestCase
@@ -17,7 +18,7 @@ class NotificationTest extends TestCase
         $data = [
             'id' => 123,
             'type' => 'task_assigned',
-            'date_action' => '2024-01-01T10:00:00Z',
+            'date_action' => '2024-01-01T10:00:00',
             'author' => [
                 'id' => 456,
                 'fullname' => 'John Doe',
@@ -40,7 +41,7 @@ class NotificationTest extends TestCase
 
         $this->assertSame(123, $notification->id);
         $this->assertSame('task_assigned', $notification->type);
-        $this->assertSame('2024-01-01T10:00:00Z', $notification->dateAction);
+        $this->assertEquals(PragueTime::utc('2024-01-01T10:00:00'), $notification->dateAction);
         $this->assertInstanceOf(User::class, $notification->author);
         $this->assertSame('John Doe', $notification->author->fullname);
         $this->assertInstanceOf(User::class, $notification->who);
@@ -111,7 +112,7 @@ class NotificationTest extends TestCase
         $notification = new Notification(
             id: 999,
             type: 'custom_type',
-            dateAction: '2024-01-01T00:00:00Z',
+            dateAction: PragueTime::utc('2024-01-01T00:00:00'),
             author: $author,
             who: null,
             isUnread: true,

@@ -20,7 +20,7 @@ class CustomField
         public readonly ?int $projectId = null,
         public readonly ?int $authorId = null,
         public readonly ?string $name = null,
-        public readonly ?string $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
         public readonly ?int $priority = null,
         /** @var array<string, mixed> */
         public readonly array $data = [],
@@ -38,7 +38,7 @@ class CustomField
             projectId: isset($data['project_id']) ? (int) $data['project_id'] : null,
             authorId: isset($data['author_id']) ? (int) $data['author_id'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
+            dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
             priority: isset($data['priority']) ? (int) $data['priority'] : null,
             data: $data,
         );

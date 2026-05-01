@@ -17,9 +17,9 @@ class TaskCreated
     public function __construct(
         public readonly ?int $id = null,
         public readonly ?string $name = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dueDate = null,
-        public readonly ?string $dueDateEnd = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dueDate = null,
+        public readonly ?\DateTimeImmutable $dueDateEnd = null,
         public readonly mixed $worker,
         public readonly ?string $priorityEnum = null,
         public readonly array $labels = [],
@@ -38,9 +38,9 @@ class TaskCreated
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dueDate: isset($data['due_date']) ? (string) $data['due_date'] : null,
-            dueDateEnd: isset($data['due_date_end']) ? (string) $data['due_date_end'] : null,
+            dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dueDate: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['due_date'] ?? null),
+            dueDateEnd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['due_date_end'] ?? null),
             worker: isset($data['worker']) ? $data['worker'] : null,
             priorityEnum: isset($data['priority_enum']) ? (string) $data['priority_enum'] : null,
             labels: isset($data['labels']) && is_array($data['labels'])

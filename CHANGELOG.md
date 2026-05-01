@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-05-01
+
+### Changed (BREAKING)
+- **Datetime fields in models are now `?\DateTimeImmutable` (UTC)** — previously `?string` raw passthrough. Affects `Task`, `Subtask`, `Tasklist`, `Project`, `Comment`, `WorkReport`, `WorkReportExtended`, `Note`, `File`, `Event`, `Notification`, `IssuedInvoice`, `Report`, `CustomField`. Constructors require `\DateTimeImmutable` instead of strings.
+  - **Why:** Freelo Public API V1 returns naive datetimes (no timezone) in `Europe/Prague` local time — now formally documented in the OpenAPI spec's "Timestamp Format" section. Treating them as RFC3339 would silently produce wrong moments. The SDK interprets V1 strings as Europe/Prague and exposes UTC `\DateTimeImmutable`.
+  - **Migration:** Where you previously did `$task->dateAdd` and got `'2024-04-24T11:12:38'`, you now get a `\DateTimeImmutable` in UTC. To get the original string, use `$task->toArray()['date_add']` or call `->format('Y-m-d\TH:i:s')` after `->setTimezone(new \DateTimeZone('Europe/Prague'))` on the object.
+
+### Added
+- **`Freelo\Sdk\Internal\DateTimeParser`** — central parser for V1 API datetime strings. Handles naive `Y-m-d\TH:i:s` (Prague), RFC3339 with `Z`/offset, pure `Y-m-d`, and `\DateTimeImmutable` passthrough. Throws `Freelo\Sdk\Exception\InvalidDateTimeException` for malformed input.
+- **`FilterBuilder` accepts `\DateTimeImmutable`** for `dueDateRange`, `createdInRange`, `finishedDateRange`, `dateReportedRange`, `dateAddRange`, `dateRange`, and `dateEditedFrom`. Strings still work — the new overload is purely additive ergonomics. Objects are formatted via `Europe/Prague` to match what the API expects.
+- **OpenAPI generator** now maps `format: date-time` and `format: date` to `\DateTimeImmutable` and emits `DateTimeParser::parseDateTime()` calls in `fromArray()`. Generated models in `src/Generated/Model/` regenerated accordingly.
+
+### Changed
+- **Synced OpenAPI spec to upstream** — `.openapi/freelo-api.yaml` now includes the new "Timestamp Format" section in `info.description`, per-field timestamp descriptions and examples, and expanded task-relations endpoint documentation (plan-gating, multi-project child handling, 403 collapsed into 404). `docs/ENDPOINTS.md` regenerated with the additional context.
+
+### Fixed
+- **Test fixtures no longer use the bogus `Z` suffix** — fixtures previously had `'2024-01-01T00:00:00Z'` which never appears in real V1 responses. Updated to naive `'2024-01-01T00:00:00'` so tests verify behavior against the format the API actually returns.
+
+### Notes
+- `toArray()` continues to return the raw API response payload — datetime fields appear there as the original strings, not formatted from the parsed object. For typed access use the object properties.
+
 ## [1.3.0] - 2026-04-22
 
 ### Added
@@ -152,7 +173,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Code coverage reporting
 
-[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/freeloapp/php-sdk/compare/v1.3.0...v2.0.0
+[1.3.0]: https://github.com/freeloapp/php-sdk/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/freeloapp/php-sdk/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/freeloapp/php-sdk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/freeloapp/php-sdk/releases/tag/v1.0.0

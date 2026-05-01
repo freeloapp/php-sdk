@@ -9,6 +9,7 @@ use Freelo\Sdk\Model\State;
 use Freelo\Sdk\Model\Subtask;
 use Freelo\Sdk\Model\Tasklist;
 use Freelo\Sdk\Model\User;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class SubtaskTest extends TestCase
@@ -19,9 +20,9 @@ class SubtaskTest extends TestCase
             'id' => 123,
             'name' => 'Implement feature',
             'task_id' => 456,
-            'date_add' => '2024-01-01T00:00:00Z',
-            'due_date' => '2024-01-15T00:00:00Z',
-            'due_date_end' => '2024-01-20T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
+            'due_date' => '2024-01-15T00:00:00',
+            'due_date_end' => '2024-01-20T00:00:00',
             'count_comments' => 5,
             'count_subtasks' => 2,
             'author' => [
@@ -54,9 +55,9 @@ class SubtaskTest extends TestCase
         $this->assertSame(123, $subtask->id);
         $this->assertSame('Implement feature', $subtask->name);
         $this->assertSame(456, $subtask->taskId);
-        $this->assertSame('2024-01-01T00:00:00Z', $subtask->dateAdd);
-        $this->assertSame('2024-01-15T00:00:00Z', $subtask->dueDate);
-        $this->assertSame('2024-01-20T00:00:00Z', $subtask->dueDateEnd);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $subtask->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-15T00:00:00'), $subtask->dueDate);
+        $this->assertEquals(PragueTime::utc('2024-01-20T00:00:00'), $subtask->dueDateEnd);
         $this->assertSame(5, $subtask->countComments);
         $this->assertSame(2, $subtask->countSubtasks);
         $this->assertInstanceOf(User::class, $subtask->author);
@@ -101,7 +102,7 @@ class SubtaskTest extends TestCase
         $data = [
             'id' => 789,
             'name' => 'Test Subtask',
-            'date_add' => '2024-01-01T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
         ];
 
         $subtask = Subtask::fromArray($data);
@@ -122,8 +123,8 @@ class SubtaskTest extends TestCase
             id: 999,
             name: 'Direct Construction',
             taskId: 500,
-            dateAdd: '2024-01-01T00:00:00Z',
-            dueDate: '2024-01-15T00:00:00Z',
+            dateAdd: PragueTime::utc('2024-01-01T00:00:00'),
+            dueDate: PragueTime::utc('2024-01-15T00:00:00'),
             dueDateEnd: null,
             countComments: 10,
             countSubtasks: 3,

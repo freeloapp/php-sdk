@@ -6,6 +6,7 @@ namespace Freelo\Sdk\Tests\Unit\Model;
 
 use Freelo\Sdk\Model\File;
 use Freelo\Sdk\Model\State;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class FileTest extends TestCase
@@ -20,8 +21,8 @@ class FileTest extends TestCase
             'caption' => 'Important Document',
             'description' => 'A test document',
             'mime_type' => 'application/pdf',
-            'date_add' => '2024-01-01T00:00:00Z',
-            'date_edited_at' => '2024-01-02T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
+            'date_edited_at' => '2024-01-02T00:00:00',
             'state' => ['id' => 1, 'state' => 'active'],
         ];
 
@@ -34,8 +35,8 @@ class FileTest extends TestCase
         $this->assertSame('Important Document', $file->caption);
         $this->assertSame('A test document', $file->description);
         $this->assertSame('application/pdf', $file->mimeType);
-        $this->assertSame('2024-01-01T00:00:00Z', $file->dateAdd);
-        $this->assertSame('2024-01-02T00:00:00Z', $file->dateEditedAt);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $file->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-02T00:00:00'), $file->dateEditedAt);
         $this->assertInstanceOf(State::class, $file->state);
     }
 

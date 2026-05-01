@@ -2464,8 +2464,8 @@ _Request body (required)_
 - Schema: `object`
 - Properties:
     - `name` (string)
-    - `due_date` (string<date-time>)
-    - `due_date_end` (string<date-time>)
+    - `due_date` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.
+    - `due_date_end` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.
     - `worker` (integer)
     - `priority_enum` (string enum: l|m|h) — Allowed options are l, m, h. Set to null to remove priority.
     - `tracking_users_ids` (array<integer>) — Set (replace) all tracking users. Pass an empty array to remove all.
@@ -2709,6 +2709,12 @@ Reverses a prior "assign to project" call by deleting the child task that belong
 Returns all relations for a task (types: `blocked_by`, `blocks`, `related_to`, `duplicate_of`).
 Relations to tasks the caller cannot access are filtered out.
 
+Relation type visibility depends on the project owner's plan: `related_to` and `duplicate_of`
+require team features; `blocked_by` and `blocks` additionally require business features.
+On lower plans the corresponding buckets are returned empty.
+
+Multi-project child task IDs are not queryable here — a direct child ID returns 404.
+
 **Parameters:**
 
 - `task_id` [path, required] (integer)
@@ -2716,8 +2722,7 @@ Relations to tasks the caller cannot access are filtered out.
 **Responses:**
 
 - `200` — Task relations
-- `403` — Forbidden
-- `404` — Task not found
+- `404` — Returned when the task does not exist, when the caller has no access to the task or its project, when the project owner's plan has no team features, or when the requested ID is a multi-project child. No separate 403 is emitted — access is indistinguishable from not-found by design.
 
 ---
 
@@ -2771,7 +2776,7 @@ _Request body (required)_
 - Content-Type: `application/json`
 - Schema: `object`
 - Properties:
-    - `remind_at` **required** (string<date-time>)
+    - `remind_at` **required** (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.
 
 **Responses:**
 
@@ -2933,7 +2938,18 @@ Paginated list of **finished** (closed) tasks inside a given tasklist. Optionall
 
 Returns relations for a list of tasks. Each item in the response contains the task ID
 and its relations (types: `blocked_by`, `blocks`, `related_to`, `duplicate_of`).
-Tasks the caller cannot access are silently omitted from the response.
+
+Tasks the caller cannot access (missing project ACL, insufficient plan, or the ID being
+a multi-project child) are silently omitted from the response — the endpoint never
+reports per-task 403/404. This mirrors the single-task GET which returns 404 for the
+same cases.
+
+Plan-gated types: `related_to` and `duplicate_of` require team features;
+`blocked_by` / `blocks` additionally require business features. On lower plans the
+corresponding items are simply missing from the per-task relation list.
+
+Duplicate task_ids are deduplicated internally; the response contains at most one
+entry per task.
 
 **Request body:**
 

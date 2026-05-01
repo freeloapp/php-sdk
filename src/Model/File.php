@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents a Freelo file (supports both FileBasic, FileFull, and FileItem schemas)
  */
@@ -19,8 +21,8 @@ class File
         public readonly ?int $size = null,
         public readonly ?string $caption = null,
         public readonly ?string $description = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
         public readonly ?State $state = null,
         public readonly ?string $mimeType = null,
         public readonly ?User $author = null,
@@ -54,8 +56,8 @@ class File
             size: isset($data['size']) ? (int) $data['size'] : null,
             caption: isset($data['caption']) ? (string) $data['caption'] : null,
             description: isset($data['description']) ? (string) $data['description'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
+            dateAdd: DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateEditedAt: DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
             state: isset($data['state']) && is_array($data['state']) ? State::fromArray($data['state']) : null,
             mimeType: isset($data['mime_type']) ? (string) $data['mime_type'] : null,
             author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,

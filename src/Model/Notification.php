@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents a notification
  */
@@ -20,7 +22,7 @@ class Notification
     public function __construct(
         public readonly int $id,
         public readonly string $type,
-        public readonly ?string $dateAction = null,
+        public readonly ?\DateTimeImmutable $dateAction = null,
         public readonly ?User $author = null,
         public readonly ?User $who = null,
         public readonly ?bool $isUnread = null,
@@ -49,7 +51,7 @@ class Notification
         return new self(
             id: (int) ($data['id'] ?? 0),
             type: isset($data['type']) ? (string) $data['type'] : '',
-            dateAction: isset($data['date_action']) ? (string) $data['date_action'] : null,
+            dateAction: DateTimeParser::parseDateTime($data['date_action'] ?? null),
             author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
             who: isset($data['who']) && is_array($data['who']) ? User::fromArray($data['who']) : null,
             isUnread: isset($data['is_unread']) ? (bool) $data['is_unread'] : null,

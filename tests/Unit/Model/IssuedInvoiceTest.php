@@ -6,6 +6,7 @@ namespace Freelo\Sdk\Tests\Unit\Model;
 
 use Freelo\Sdk\Model\Currency;
 use Freelo\Sdk\Model\IssuedInvoice;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class IssuedInvoiceTest extends TestCase
@@ -14,7 +15,7 @@ class IssuedInvoiceTest extends TestCase
     {
         $data = [
             'id' => 123,
-            'date_add' => '2024-01-01T10:00:00Z',
+            'date_add' => '2024-01-01T10:00:00',
             'note' => 'Test invoice note',
             'currency' => 'CZK',
             'minutes' => 480,
@@ -35,7 +36,7 @@ class IssuedInvoiceTest extends TestCase
         $invoice = IssuedInvoice::fromArray($data);
 
         $this->assertSame(123, $invoice->id);
-        $this->assertSame('2024-01-01T10:00:00Z', $invoice->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-01T10:00:00'), $invoice->dateAdd);
         $this->assertSame('Test invoice note', $invoice->note);
         $this->assertSame('CZK', $invoice->currency);
         $this->assertSame(480, $invoice->minutes);
@@ -119,7 +120,7 @@ class IssuedInvoiceTest extends TestCase
 
         $invoice = new IssuedInvoice(
             id: 999,
-            dateAdd: '2024-01-01T00:00:00Z',
+            dateAdd: PragueTime::utc('2024-01-01T00:00:00'),
             note: 'Test note',
             currency: 'EUR',
             minutes: 300,
@@ -130,7 +131,7 @@ class IssuedInvoiceTest extends TestCase
         );
 
         $this->assertSame(999, $invoice->id);
-        $this->assertSame('2024-01-01T00:00:00Z', $invoice->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $invoice->dateAdd);
         $this->assertSame('Test Company', $invoice->getCompanyName());
         $this->assertSame(5.0, $invoice->getHours());
     }

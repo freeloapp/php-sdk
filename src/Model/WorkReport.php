@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents a work/time report entry
  */
@@ -18,9 +20,9 @@ class WorkReport
         public readonly int $id,
         public readonly ?int $minutes = null,
         public readonly ?string $note = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
-        public readonly ?string $dateReported = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dateReported = null,
         public readonly ?User $author = null,
         public readonly ?User $worker = null,
         public readonly ?Currency $cost = null,
@@ -45,9 +47,9 @@ class WorkReport
             id: (int) ($data['id'] ?? 0),
             minutes: isset($data['minutes']) ? (int) $data['minutes'] : null,
             note: isset($data['note']) ? (string) $data['note'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
-            dateReported: isset($data['date_reported']) ? (string) $data['date_reported'] : null,
+            dateAdd: DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateEditedAt: DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
+            dateReported: DateTimeParser::parseDateTime($data['date_reported'] ?? null),
             author: isset($data['author']) && is_array($data['author'])
                 ? User::fromArray($data['author']) : null,
             worker: is_array($workerData) ? User::fromArray($workerData) : null,

@@ -41,6 +41,20 @@ info:
     ## Ordering
     Use `order_by` and `order` (asc/desc) parameters where supported.
 
+    ## Timestamp Format
+    All response and request fields with `format: date-time` are returned and accepted as
+    **naive ISO8601 strings without a timezone designator** — for example `2026-04-24T11:12:38`.
+    Values represent **Europe/Prague local time** (CET / CEST, observing DST). This is **not
+    RFC3339-compliant**, so strict parsers (e.g. Go's `time.Parse(time.RFC3339, ...)`) will fail.
+
+    Recommended client handling:
+
+    1. Parse with a permissive layout (Go: `"2006-01-02T15:04:05"`, Python: `datetime.fromisoformat`).
+    2. Attach the `Europe/Prague` location explicitly (e.g. Go: `time.LoadLocation("Europe/Prague")`).
+    3. Convert to UTC or the desired zone afterwards.
+
+    Send request `date-time` values in the same naive format and timezone.
+
   version: "1.0.0"
   contact:
     name: Freelo Support
@@ -1619,7 +1633,18 @@ paths:
       description: |
         Returns relations for a list of tasks. Each item in the response contains the task ID
         and its relations (types: `blocked_by`, `blocks`, `related_to`, `duplicate_of`).
-        Tasks the caller cannot access are silently omitted from the response.
+
+        Tasks the caller cannot access (missing project ACL, insufficient plan, or the ID being
+        a multi-project child) are silently omitted from the response — the endpoint never
+        reports per-task 403/404. This mirrors the single-task GET which returns 404 for the
+        same cases.
+
+        Plan-gated types: `related_to` and `duplicate_of` require team features;
+        `blocked_by` / `blocks` additionally require business features. On lower plans the
+        corresponding items are simply missing from the per-task relation list.
+
+        Duplicate task_ids are deduplicated internally; the response contains at most one
+        entry per task.
       operationId: findTaskRelationsBulk
       requestBody:
         required: true
@@ -1727,9 +1752,13 @@ paths:
                 due_date:
                   type: string
                   format: date-time
+                  description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                  example: '2026-04-24T11:12:38'
                 due_date_end:
                   type: string
                   format: date-time
+                  description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                  example: '2026-04-24T11:12:38'
                 worker:
                   type: integer
                 priority_enum:
@@ -1948,6 +1977,12 @@ paths:
       description: |
         Returns all relations for a task (types: `blocked_by`, `blocks`, `related_to`, `duplicate_of`).
         Relations to tasks the caller cannot access are filtered out.
+
+        Relation type visibility depends on the project owner's plan: `related_to` and `duplicate_of`
+        require team features; `blocked_by` and `blocks` additionally require business features.
+        On lower plans the corresponding buckets are returned empty.
+
+        Multi-project child task IDs are not queryable here — a direct child ID returns 404.
       operationId: getTaskRelations
       parameters:
         - $ref: '#/components/parameters/TaskIdParam'
@@ -1963,10 +1998,12 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/TaskRelation'
-        '403':
-          description: Forbidden
         '404':
-          description: Task not found
+          description: |
+            Returned when the task does not exist, when the caller has no access to the task
+            or its project, when the project owner's plan has no team features, or when the
+            requested ID is a multi-project child. No separate 403 is emitted — access is
+            indistinguishable from not-found by design.
 
   /task/{task_id}/projects/{project_id}:
     delete:
@@ -2095,6 +2132,8 @@ paths:
                 remind_at:
                   type: string
                   format: date-time
+                  description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                  example: '2026-04-24T11:12:38'
       responses:
         '200':
           description: Reminder created
@@ -2106,6 +2145,8 @@ paths:
                   remind_at:
                     type: string
                     format: date-time
+                    description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                    example: '2026-04-24T11:12:38'
                   task:
                     type: object
                     properties:
@@ -2892,7 +2933,8 @@ paths:
                   date_reported:
                     type: string
                     format: date-time
-                    description: Timestamp when the session was started (ISO 8601 / ATOM format)
+                    description: 'Timestamp when the session was started. Naive ISO8601 in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                    example: '2026-04-24T11:12:38'
                   task:
                     nullable: true
                     description: Associated task, or null if tracking without a task
@@ -3533,9 +3575,13 @@ paths:
                       date_from:
                         type: string
                         format: date-time
+                        description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                        example: '2026-04-24T11:12:38'
                       date_to:
                         type: string
                         format: date-time
+                        description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                        example: '2026-04-24T11:12:38'
     post:
       tags:
         - Users
@@ -3577,9 +3623,13 @@ paths:
                     date_from:
                       type: string
                       format: date-time
+                      description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                      example: '2026-04-24T11:12:38'
                     date_to:
                       type: string
                       format: date-time
+                      description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                      example: '2026-04-24T11:12:38'
       responses:
         '200':
           description: Successful response
@@ -4860,6 +4910,8 @@ components:
         reported:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         minutes:
           type: integer
         cost:
@@ -4931,9 +4983,13 @@ components:
             date_add:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             date_edited_at:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             tasklists:
               type: array
               items:
@@ -4949,9 +5005,13 @@ components:
             date_add:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             date_edited_at:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             owner:
               $ref: '#/components/schemas/UserBasic'
             state:
@@ -4992,10 +5052,14 @@ components:
                         due_date:
                           type: string
                           format: date-time
+                          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                          example: '2026-04-24T11:12:38'
                           nullable: true
                         due_date_end:
                           type: string
                           format: date-time
+                          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                          example: '2026-04-24T11:12:38'
                           nullable: true
                         worker:
                           $ref: '#/components/schemas/UserBasic'
@@ -5070,9 +5134,13 @@ components:
             date_add:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             date_edited_at:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             state:
               $ref: '#/components/schemas/State'
             project:
@@ -5099,9 +5167,13 @@ components:
             date_add:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             date_edited_at:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             tasks:
               type: array
               items:
@@ -5114,10 +5186,14 @@ components:
                   due_date:
                     type: string
                     format: date-time
+                    description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                    example: '2026-04-24T11:12:38'
                     nullable: true
                   due_date_end:
                     type: string
                     format: date-time
+                    description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+                    example: '2026-04-24T11:12:38'
                     nullable: true
                   worker:
                     $ref: '#/components/schemas/UserBasic'
@@ -5227,16 +5303,24 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         date_edited_at:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         due_date:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         due_date_end:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         count_comments:
           type: integer
@@ -5294,6 +5378,8 @@ components:
             date_finished:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             finished_by:
               $ref: '#/components/schemas/UserBasic'
 
@@ -5307,9 +5393,13 @@ components:
         due_date:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         due_date_end:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         worker:
           type: integer
         priority_enum:
@@ -5346,13 +5436,19 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         due_date:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         due_date_end:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         worker:
           $ref: '#/components/schemas/UserBasic'
@@ -5388,20 +5484,30 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         date_edited_at:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         due_date:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         due_date_end:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         date_finished:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         minutes:
           type: integer
@@ -5457,9 +5563,13 @@ components:
         due_date:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         due_date_end:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         worker:
           type: integer
         priority_enum:
@@ -5492,13 +5602,19 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         due_date:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         due_date_end:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         count_comments:
           type: integer
@@ -5554,9 +5670,13 @@ components:
             date_add:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             date_edited_at:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             state:
               $ref: '#/components/schemas/State'
 
@@ -5581,6 +5701,8 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         files:
           type: array
           items:
@@ -5619,9 +5741,13 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         date_edited_at:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         author:
           $ref: '#/components/schemas/UserBasic'
         task:
@@ -5674,6 +5800,8 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         date_reported:
           type: string
           format: date
@@ -5718,6 +5846,8 @@ components:
             date_edited_at:
               type: string
               format: date-time
+              description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+              example: '2026-04-24T11:12:38'
             task:
               nullable: true
               type: object
@@ -5768,6 +5898,8 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         note:
           type: string
           nullable: true
@@ -5848,6 +5980,8 @@ components:
         date_action:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         author:
           $ref: '#/components/schemas/UserBasic'
         who:
@@ -5908,6 +6042,8 @@ components:
         date_action:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         type:
           type: string
         author:
@@ -5964,10 +6100,14 @@ components:
         due_date:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         due_date_end:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
 
     FileItem:
@@ -5989,6 +6129,8 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         order:
           type: integer
         type:
@@ -6043,6 +6185,8 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         priority:
           type: integer
 
@@ -6057,9 +6201,13 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         date_edited_at:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         author_id:
           type: integer
@@ -6085,9 +6233,13 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         date_edited_at:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
         author_id:
           type: integer
@@ -6124,6 +6276,8 @@ components:
         field_date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         value_uuid:
           type: string
           format: uuid
@@ -6134,9 +6288,13 @@ components:
         value_date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         value_date_edited_at:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
           nullable: true
 
     Note:
@@ -6149,9 +6307,13 @@ components:
         date_add:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         date_edited_at:
           type: string
           format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
         state:
           $ref: '#/components/schemas/State'
         content:

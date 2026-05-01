@@ -16,7 +16,7 @@ class Event
 {
     public function __construct(
         public readonly ?int $id = null,
-        public readonly ?string $dateAction = null,
+        public readonly ?\DateTimeImmutable $dateAction = null,
         public readonly ?string $type = null,
         public readonly mixed $author,
         public readonly mixed $who,
@@ -27,8 +27,8 @@ class Event
         public readonly mixed $project,
         public readonly array $document = [],
         public readonly array $file = [],
-        public readonly ?string $dueDate = null,
-        public readonly ?string $dueDateEnd = null,
+        public readonly ?\DateTimeImmutable $dueDate = null,
+        public readonly ?\DateTimeImmutable $dueDateEnd = null,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -41,7 +41,7 @@ class Event
     {
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
-            dateAction: isset($data['date_action']) ? (string) $data['date_action'] : null,
+            dateAction: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_action'] ?? null),
             type: isset($data['type']) ? (string) $data['type'] : null,
             author: isset($data['author']) ? $data['author'] : null,
             who: isset($data['who']) ? $data['who'] : null,
@@ -57,8 +57,8 @@ class Event
                 ? $data['document'] : [],
             file: isset($data['file']) && is_array($data['file'])
                 ? $data['file'] : [],
-            dueDate: isset($data['due_date']) ? (string) $data['due_date'] : null,
-            dueDateEnd: isset($data['due_date_end']) ? (string) $data['due_date_end'] : null,
+            dueDate: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['due_date'] ?? null),
+            dueDateEnd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['due_date_end'] ?? null),
             data: $data,
         );
     }

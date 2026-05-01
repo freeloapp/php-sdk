@@ -17,10 +17,10 @@ class TaskFinished
     public function __construct(
         public readonly ?int $id = null,
         public readonly ?string $name = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
-        public readonly ?string $dueDate = null,
-        public readonly ?string $dueDateEnd = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dueDate = null,
+        public readonly ?\DateTimeImmutable $dueDateEnd = null,
         public readonly ?int $countComments = null,
         public readonly ?int $countSubtasks = null,
         public readonly mixed $author,
@@ -29,7 +29,7 @@ class TaskFinished
         public readonly ?int $parentTaskId = null,
         public readonly mixed $totalTimeEstimate,
         public readonly array $usersTimeEstimates = [],
-        public readonly ?string $dateFinished = null,
+        public readonly ?\DateTimeImmutable $dateFinished = null,
         public readonly mixed $finishedBy,
         /** @var array<string, mixed> */
         public readonly array $data = [],
@@ -44,10 +44,10 @@ class TaskFinished
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
-            dueDate: isset($data['due_date']) ? (string) $data['due_date'] : null,
-            dueDateEnd: isset($data['due_date_end']) ? (string) $data['due_date_end'] : null,
+            dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateEditedAt: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
+            dueDate: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['due_date'] ?? null),
+            dueDateEnd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['due_date_end'] ?? null),
             countComments: isset($data['count_comments']) ? (int) $data['count_comments'] : null,
             countSubtasks: isset($data['count_subtasks']) ? (int) $data['count_subtasks'] : null,
             author: isset($data['author']) ? $data['author'] : null,
@@ -58,7 +58,7 @@ class TaskFinished
             totalTimeEstimate: isset($data['total_time_estimate']) ? $data['total_time_estimate'] : null,
             usersTimeEstimates: isset($data['users_time_estimates']) && is_array($data['users_time_estimates'])
                 ? $data['users_time_estimates'] : [],
-            dateFinished: isset($data['date_finished']) ? (string) $data['date_finished'] : null,
+            dateFinished: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_finished'] ?? null),
             finishedBy: isset($data['finished_by']) ? $data['finished_by'] : null,
             data: $data,
         );

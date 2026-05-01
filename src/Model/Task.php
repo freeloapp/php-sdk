@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents a Freelo task
  */
@@ -20,11 +22,11 @@ class Task
     public function __construct(
         public readonly int $id,
         public readonly string $name,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
-        public readonly ?string $dueDate = null,
-        public readonly ?string $dueDateEnd = null,
-        public readonly ?string $dateFinished = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dueDate = null,
+        public readonly ?\DateTimeImmutable $dueDateEnd = null,
+        public readonly ?\DateTimeImmutable $dateFinished = null,
         public readonly ?string $priorityEnum = null,
         public readonly ?int $minutes = null,
         public readonly ?int $countComments = null,
@@ -65,11 +67,11 @@ class Task
         return new self(
             id: (int) ($data['id'] ?? 0),
             name: isset($data['name']) ? (string) $data['name'] : '',
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
-            dueDate: isset($data['due_date']) ? (string) $data['due_date'] : null,
-            dueDateEnd: isset($data['due_date_end']) ? (string) $data['due_date_end'] : null,
-            dateFinished: isset($data['date_finished']) ? (string) $data['date_finished'] : null,
+            dateAdd: DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateEditedAt: DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
+            dueDate: DateTimeParser::parseDateTime($data['due_date'] ?? null),
+            dueDateEnd: DateTimeParser::parseDateTime($data['due_date_end'] ?? null),
+            dateFinished: DateTimeParser::parseDateTime($data['date_finished'] ?? null),
             priorityEnum: isset($data['priority_enum']) ? (string) $data['priority_enum'] : null,
             minutes: isset($data['minutes']) ? (int) $data['minutes'] : null,
             countComments: isset($data['count_comments']) ? (int) $data['count_comments'] : null,

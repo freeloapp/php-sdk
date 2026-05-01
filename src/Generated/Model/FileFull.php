@@ -21,8 +21,8 @@ class FileFull
         public readonly ?int $size = null,
         public readonly ?string $caption = null,
         public readonly ?string $description = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateEditedAt = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateEditedAt = null,
         public readonly mixed $state,
         /** @var array<string, mixed> */
         public readonly array $data = [],
@@ -41,8 +41,8 @@ class FileFull
             size: isset($data['size']) ? (int) $data['size'] : null,
             caption: isset($data['caption']) ? (string) $data['caption'] : null,
             description: isset($data['description']) ? (string) $data['description'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateEditedAt: isset($data['date_edited_at']) ? (string) $data['date_edited_at'] : null,
+            dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateEditedAt: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
             state: isset($data['state']) ? $data['state'] : null,
             data: $data,
         );

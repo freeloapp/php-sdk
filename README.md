@@ -262,6 +262,31 @@ try {
 }
 ```
 
+## Working with Dates
+
+Datetime fields on model objects (`Task::dateAdd`, `WorkReport::dateReported`, …) are exposed as **`\DateTimeImmutable` in UTC**. The Freelo Public API V1 returns naive datetime strings without a timezone (e.g. `2026-04-24T11:12:38`); these represent `Europe/Prague` local time, as documented in the OpenAPI spec's "Timestamp Format" section. The SDK parses them as Prague-local and converts to UTC, so you can compare and format them safely without worrying about silent timezone drift.
+
+```php
+$task = $freelo->tasks()->get(123);
+
+// $task->dateAdd is \DateTimeImmutable in UTC
+echo $task->dateAdd->format('c');                       // 2026-04-24T09:12:38+00:00 (UTC)
+echo $task->dateAdd
+    ->setTimezone(new \DateTimeZone('Europe/Prague'))
+    ->format('c');                                      // 2026-04-24T11:12:38+02:00 (Prague)
+
+// Raw API payload (still strings) is available via toArray():
+$raw = $task->toArray()['date_add'];                    // '2026-04-24T11:12:38'
+```
+
+`FilterBuilder` accepts either `\DateTimeImmutable` or `Y-m-d` strings for date-range filters; objects are formatted in `Europe/Prague` to match what the API expects:
+
+```php
+$filters = FilterBuilder::create()
+    ->dueDateRange(new \DateTimeImmutable('2026-04-01'), new \DateTimeImmutable('2026-04-30'))
+    ->build();
+```
+
 ## Rate Limiting
 
 The API allows 25 requests/minute. The SDK tracks limits automatically:

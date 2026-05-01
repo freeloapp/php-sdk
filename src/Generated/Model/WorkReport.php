@@ -16,8 +16,8 @@ class WorkReport
 {
     public function __construct(
         public readonly ?int $id = null,
-        public readonly ?string $dateAdd = null,
-        public readonly ?string $dateReported = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateReported = null,
         public readonly ?string $note = null,
         public readonly ?int $minutes = null,
         public readonly mixed $cost,
@@ -36,8 +36,8 @@ class WorkReport
     {
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
-            dateReported: isset($data['date_reported']) ? (string) $data['date_reported'] : null,
+            dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
+            dateReported: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_reported'] ?? null),
             note: isset($data['note']) ? (string) $data['note'] : null,
             minutes: isset($data['minutes']) ? (int) $data['minutes'] : null,
             cost: isset($data['cost']) ? $data['cost'] : null,

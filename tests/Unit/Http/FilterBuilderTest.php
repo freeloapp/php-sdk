@@ -464,4 +464,34 @@ class FilterBuilderTest extends TestCase
 
         $this->assertSame(['order' => 'desc'], $filters);
     }
+
+    public function testDateRangeAcceptsDateTimeImmutable(): void
+    {
+        $from = new \DateTimeImmutable('2024-04-01T08:30:00', new \DateTimeZone('UTC'));
+        $to = new \DateTimeImmutable('2024-04-30T23:00:00', new \DateTimeZone('UTC'));
+
+        $filters = FilterBuilder::create()
+            ->dueDateRange($from, $to)
+            ->build();
+
+        // UTC -> Europe/Prague: 2024-04-01T08:30 UTC = 2024-04-01 10:30 CEST -> 2024-04-01
+        // 2024-04-30T23:00 UTC = 2024-05-01 01:00 CEST -> 2024-05-01
+        $this->assertSame([
+            'due_date_range' => [
+                'date_from' => '2024-04-01',
+                'date_to' => '2024-05-01',
+            ],
+        ], $filters);
+    }
+
+    public function testDateEditedFromAcceptsDateTimeImmutable(): void
+    {
+        $date = new \DateTimeImmutable('2024-06-15T00:00:00', new \DateTimeZone('Europe/Prague'));
+
+        $filters = FilterBuilder::create()
+            ->dateEditedFrom($date)
+            ->build();
+
+        $this->assertSame(['date_edited_from' => '2024-06-15'], $filters);
+    }
 }

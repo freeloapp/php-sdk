@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Tests\Unit\Model;
 
 use Freelo\Sdk\Model\Task;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class TaskTest extends TestCase
@@ -14,8 +15,8 @@ class TaskTest extends TestCase
         $data = [
             'id' => 123,
             'name' => 'Test Task',
-            'date_add' => '2024-01-01T00:00:00Z',
-            'date_edited_at' => '2024-01-02T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
+            'date_edited_at' => '2024-01-02T00:00:00',
             'due_date' => '2024-12-31',
             'priority_enum' => 'high',
             'minutes' => 60,
@@ -25,9 +26,9 @@ class TaskTest extends TestCase
 
         $this->assertSame(123, $task->id);
         $this->assertSame('Test Task', $task->name);
-        $this->assertSame('2024-01-01T00:00:00Z', $task->dateAdd);
-        $this->assertSame('2024-01-02T00:00:00Z', $task->dateEditedAt);
-        $this->assertSame('2024-12-31', $task->dueDate);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $task->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-02T00:00:00'), $task->dateEditedAt);
+        $this->assertEquals(PragueTime::utc('2024-12-31'), $task->dueDate);
         $this->assertSame('high', $task->priorityEnum);
         $this->assertSame(60, $task->minutes);
     }
@@ -69,16 +70,16 @@ class TaskTest extends TestCase
         $task = new Task(
             id: 999,
             name: 'Direct Construction',
-            dateAdd: '2024-01-01T00:00:00Z',
-            dateEditedAt: '2024-01-02T00:00:00Z',
-            dueDate: '2024-12-31',
+            dateAdd: PragueTime::utc('2024-01-01T00:00:00'),
+            dateEditedAt: PragueTime::utc('2024-01-02T00:00:00'),
+            dueDate: PragueTime::utc('2024-12-31'),
             priorityEnum: 'high',
             data: ['custom' => 'data'],
         );
 
         $this->assertSame(999, $task->id);
         $this->assertSame('Direct Construction', $task->name);
-        $this->assertSame('2024-12-31', $task->dueDate);
+        $this->assertEquals(PragueTime::utc('2024-12-31'), $task->dueDate);
         $this->assertSame('high', $task->priorityEnum);
     }
 }

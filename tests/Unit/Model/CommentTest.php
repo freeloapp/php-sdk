@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Tests\Unit\Model;
 
 use Freelo\Sdk\Model\Comment;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class CommentTest extends TestCase
@@ -16,8 +17,8 @@ class CommentTest extends TestCase
             'uuid' => 'abc-123-def',
             'content' => 'Test comment',
             'task' => ['id' => 456, 'name' => 'Test Task'],
-            'date_add' => '2024-01-01T00:00:00Z',
-            'date_edited_at' => '2024-01-02T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
+            'date_edited_at' => '2024-01-02T00:00:00',
             'is_description' => false,
         ];
 
@@ -28,8 +29,8 @@ class CommentTest extends TestCase
         $this->assertSame('Test comment', $comment->content);
         $this->assertSame(456, $comment->getTaskId());
         $this->assertSame('Test Task', $comment->getTaskName());
-        $this->assertSame('2024-01-01T00:00:00Z', $comment->dateAdd);
-        $this->assertSame('2024-01-02T00:00:00Z', $comment->dateEditedAt);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $comment->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-02T00:00:00'), $comment->dateEditedAt);
         $this->assertFalse($comment->isDescription);
     }
 

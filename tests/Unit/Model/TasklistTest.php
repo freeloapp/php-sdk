@@ -9,6 +9,7 @@ use Freelo\Sdk\Model\Project;
 use Freelo\Sdk\Model\State;
 use Freelo\Sdk\Model\TaskLabel;
 use Freelo\Sdk\Model\Tasklist;
+use Freelo\Sdk\Tests\Support\PragueTime;
 use PHPUnit\Framework\TestCase;
 
 class TasklistTest extends TestCase
@@ -18,8 +19,8 @@ class TasklistTest extends TestCase
         $data = [
             'id' => 123,
             'name' => 'Development Tasks',
-            'date_add' => '2024-01-01T00:00:00Z',
-            'date_edited_at' => '2024-01-02T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
+            'date_edited_at' => '2024-01-02T00:00:00',
             'state' => [
                 'id' => 1,
                 'state' => 'active',
@@ -47,8 +48,8 @@ class TasklistTest extends TestCase
 
         $this->assertSame(123, $tasklist->id);
         $this->assertSame('Development Tasks', $tasklist->name);
-        $this->assertSame('2024-01-01T00:00:00Z', $tasklist->dateAdd);
-        $this->assertSame('2024-01-02T00:00:00Z', $tasklist->dateEditedAt);
+        $this->assertEquals(PragueTime::utc('2024-01-01T00:00:00'), $tasklist->dateAdd);
+        $this->assertEquals(PragueTime::utc('2024-01-02T00:00:00'), $tasklist->dateEditedAt);
         $this->assertInstanceOf(State::class, $tasklist->state);
         $this->assertTrue($tasklist->state->isActive());
         $this->assertInstanceOf(Project::class, $tasklist->project);
@@ -95,7 +96,7 @@ class TasklistTest extends TestCase
         $data = [
             'id' => 789,
             'name' => 'Test Tasklist',
-            'date_add' => '2024-01-01T00:00:00Z',
+            'date_add' => '2024-01-01T00:00:00',
         ];
 
         $tasklist = Tasklist::fromArray($data);
@@ -113,8 +114,8 @@ class TasklistTest extends TestCase
         $tasklist = new Tasklist(
             id: 999,
             name: 'Direct Construction',
-            dateAdd: '2024-01-01T00:00:00Z',
-            dateEditedAt: '2024-01-02T00:00:00Z',
+            dateAdd: PragueTime::utc('2024-01-01T00:00:00'),
+            dateEditedAt: PragueTime::utc('2024-01-02T00:00:00'),
             state: $state,
             project: $project,
             budget: $budget,

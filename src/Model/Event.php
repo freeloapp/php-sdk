@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents an activity event
  */
@@ -20,7 +22,7 @@ class Event
     public function __construct(
         public readonly int $id,
         public readonly string $type,
-        public readonly ?string $dateAction = null,
+        public readonly ?\DateTimeImmutable $dateAction = null,
         public readonly ?User $author = null,
         public readonly ?User $who = null,
         public readonly ?array $comment = null,
@@ -30,8 +32,8 @@ class Event
         public readonly ?Project $project = null,
         public readonly ?array $document = null,
         public readonly ?array $file = null,
-        public readonly ?string $dueDate = null,
-        public readonly ?string $dueDateEnd = null,
+        public readonly ?\DateTimeImmutable $dueDate = null,
+        public readonly ?\DateTimeImmutable $dueDateEnd = null,
         public readonly array $data = [],
     ) {
     }
@@ -46,7 +48,7 @@ class Event
         return new self(
             id: (int) ($data['id'] ?? 0),
             type: isset($data['type']) ? (string) $data['type'] : '',
-            dateAction: isset($data['date_action']) ? (string) $data['date_action'] : null,
+            dateAction: DateTimeParser::parseDateTime($data['date_action'] ?? null),
             author: isset($data['author']) && is_array($data['author']) ? User::fromArray($data['author']) : null,
             who: isset($data['who']) && is_array($data['who']) ? User::fromArray($data['who']) : null,
             comment: isset($data['comment']) && is_array($data['comment']) ? $data['comment'] : null,
@@ -58,8 +60,8 @@ class Event
                 ? Project::fromArray($data['project']) : null,
             document: isset($data['document']) && is_array($data['document']) ? $data['document'] : null,
             file: isset($data['file']) && is_array($data['file']) ? $data['file'] : null,
-            dueDate: isset($data['due_date']) ? (string) $data['due_date'] : null,
-            dueDateEnd: isset($data['due_date_end']) ? (string) $data['due_date_end'] : null,
+            dueDate: DateTimeParser::parseDateTime($data['due_date'] ?? null),
+            dueDateEnd: DateTimeParser::parseDateTime($data['due_date_end'] ?? null),
             data: $data,
         );
     }

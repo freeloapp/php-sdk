@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Freelo\Sdk\Model;
 
+use Freelo\Sdk\Internal\DateTimeParser;
+
 /**
  * Represents a Freelo report (generic report type)
  */
@@ -17,7 +19,7 @@ class Report
         public readonly string $type,
         public readonly ?string $format = null,
         public readonly ?string $url = null,
-        public readonly ?string $dateAdd = null,
+        public readonly ?\DateTimeImmutable $dateAdd = null,
         public readonly array $data = [],
     ) {
     }
@@ -34,7 +36,7 @@ class Report
             type: isset($data['type']) ? (string) $data['type'] : '',
             format: isset($data['format']) ? (string) $data['format'] : null,
             url: isset($data['url']) ? (string) $data['url'] : null,
-            dateAdd: isset($data['date_add']) ? (string) $data['date_add'] : null,
+            dateAdd: DateTimeParser::parseDateTime($data['date_add'] ?? null),
             data: $data,
         );
     }
