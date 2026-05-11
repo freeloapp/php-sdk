@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`update-api-spec.yml` workflow** — weekly (Monday 06:00 UTC) and manually triggerable job that downloads the latest upstream OpenAPI spec (`make spec`), regenerates models + endpoints digest (`composer generate`), runs PHPStan/PHPCS/tests against the new client, and opens a `chore/update-api-spec` PR via `peter-evans/create-pull-request` if anything changed. Mirrors the equivalent automation in the Go SDK; `openapi-check.yml` remains for drift detection on every push/PR.
+
 ## [2.0.0] - 2026-05-01
 
 ### Changed (BREAKING)

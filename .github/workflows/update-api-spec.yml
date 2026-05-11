@@ -1,0 +1,66 @@
+name: Update API Spec
+
+on:
+  schedule:
+    # Mondays 06:00 UTC — gives reviewers the rest of the week to land
+    # any drift PR before the next regen.
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, json
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Download upstream OpenAPI spec
+        run: make spec
+
+      - name: Regenerate models and endpoints digest
+        run: composer generate
+
+      - name: Run static analysis against new client
+        run: composer analyse
+
+      - name: Run tests against new client
+        run: composer test
+
+      - name: Open PR if anything changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/update-api-spec
+          delete-branch: true
+          commit-message: "chore: refresh OpenAPI spec and regenerate client"
+          title: "chore: refresh OpenAPI spec and regenerate client"
+          body: |
+            Automated weekly refresh of the Freelo OpenAPI spec.
+
+            - `.openapi/freelo-api.yaml` updated to upstream HEAD.
+            - `src/Generated/**` regenerated via `composer generate:models`.
+            - `docs/ENDPOINTS.md` regenerated via `composer generate:endpoints`.
+            - Static analysis (PHPStan + PHPCS) and tests pass against the new client.
+
+            Review the diff for any breaking changes before merging.
+          labels: |
+            dependencies
+            automated
+          add-paths: |
+            .openapi/freelo-api.yaml
+            src/Generated/**
+            docs/ENDPOINTS.md
