@@ -136,8 +136,21 @@ paths:
                         type: integer
                         description: ID of the authenticated user
                         example: 12345
+                      email:
+                        type: string
+                        format: email
+                        description: Email address of the authenticated user
+                        example: jane.doe@example.com
+                      mention_key:
+                        type: string
+                        description: |
+                          Normalized form of the authenticated user's `fullname` (whitespace stripped, diacritics removed) used in comments as the visible text after `@` inside a mention span. Build a mention with:
+                          `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>`
+                        example: JaneDoe
                     required:
                       - id
+                      - email
+                      - mention_key
                 required:
                   - result
                   - user
@@ -630,7 +643,7 @@ paths:
                           workers:
                             type: array
                             items:
-                              $ref: '#/components/schemas/UserBasic'
+                              $ref: '#/components/schemas/UserWithEmail'
 
   /project/{project_id}/archive:
     post:
@@ -1273,7 +1286,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/UserBasic'
+                  $ref: '#/components/schemas/UserWithEmail'
 
   /tasklist/{tasklist_id}:
     get:
@@ -1525,10 +1538,14 @@ paths:
             type: string
         - name: no_due_date
           in: query
-          description: Only tasks with no due date
+          description: >-
+            Only tasks with no due date. Pass `1` to enable, `0` to disable —
+            string values like `true`/`false` are not accepted and silently
+            fall back to the default.
           schema:
-            type: boolean
-            default: false
+            type: integer
+            enum: [0, 1]
+            default: 0
         - name: due_date_range[date_from]
           in: query
           description: Filter tasks with due date on or after this date
@@ -1543,10 +1560,14 @@ paths:
             format: date
         - name: finished_overdue
           in: query
-          description: Only tasks finished after due date
+          description: >-
+            Only tasks finished after due date. Pass `1` to enable, `0` to
+            disable — string values like `true`/`false` are not accepted and
+            silently fall back to the default.
           schema:
-            type: boolean
-            default: false
+            type: integer
+            enum: [0, 1]
+            default: 0
         - name: finished_date_range[date_from]
           in: query
           description: Filter tasks finished on or after this date
@@ -2866,7 +2887,8 @@ paths:
         - There is no session ID — the endpoint always targets the caller's single active session.
         - Returns HTTP **409 Conflict** with `"Timetracking is not running."` if no session is active.
         - Setting `task_id=null` disassociates the session from any task (continues as general work).
-        - Elapsed minutes are preserved; only the tracked task / note change.
+        - All body fields are partial — only fields present in the payload are updated; omitted fields keep their current value.
+        - Passing `date_reported` rewrites the session's start time (e.g. to backdate a forgotten timer). Elapsed duration on `/timetracking/stop` is computed from this value to "now".
       operationId: editTimeTracking
       requestBody:
         content:
@@ -2882,6 +2904,11 @@ paths:
                   type: string
                   nullable: true
                   description: Updated note for the time tracking session.
+                date_reported:
+                  type: string
+                  format: date-time
+                  description: New start timestamp for the running session (ISO 8601, e.g. `2026-05-07T09:00:00+02:00`). Used to correct or backdate the timer's start time. The work report produced by `/timetracking/stop` will compute its duration from this value.
+                  example: '2026-05-07T09:00:00+02:00'
       responses:
         '200':
           description: Time tracking session updated
@@ -3061,10 +3088,14 @@ paths:
           in: query
           description: >-
             Include the authenticated user's work reports without an associated
-            task. Automatically filters by the authenticated user.
+            task. Automatically filters by the authenticated user. Pass `1` to
+            enable, `0` to disable — string values like `true`/`false` are not
+            accepted and silently fall back to the default.
+            Mutually exclusive with `users_ids[]`.
           schema:
-            type: boolean
-            default: false
+            type: integer
+            enum: [0, 1]
+            default: 0
         - $ref: '#/components/parameters/PageParam'
       responses:
         '200':
@@ -3116,7 +3147,11 @@ paths:
               properties:
                 date_reported:
                   type: string
-                  format: date
+                  description: |
+                    Start timestamp of the work session. Accepts either a full ISO 8601 datetime
+                    (`2026-05-08T08:00:00+02:00`) or a date-only string (`2026-05-08`).
+                    Datetime form records the exact start moment; date-only defaults to start of day.
+                  example: '2026-05-08T08:00:00+02:00'
                 worker_id:
                   type: integer
                 minutes:
@@ -3171,11 +3206,19 @@ paths:
                   type: string
                 date_reported:
                   type: string
-                  format: date
+                  description: |
+                    Start timestamp of the work session. Accepts either a full ISO 8601 datetime
+                    (`2026-05-08T08:00:00+02:00`) or a date-only string (`2026-05-08`).
+                    Datetime form records the exact start moment; date-only defaults to start of day.
+                  example: '2026-05-08T08:00:00+02:00'
                 note:
                   type: string
+                  nullable: true
+                  description: Note for the work report. Pass `null` to clear an existing note. Empty string is rejected.
                 task_id:
                   type: integer
+                  nullable: true
+                  description: ID of the task this work report belongs to. Pass `null` to detach the report from its current task.
       responses:
         '200':
           description: Work report updated
@@ -3403,7 +3446,7 @@ paths:
         - Users
       summary: Get all coworkers visible to caller
       description: |
-        Paginated list of users the authenticated caller shares at least one project with — effectively their "coworkers book".
+        Paginated list of users the authenticated caller shares at least one **active** project with — effectively their current "coworkers book".
 
         **Use cases:**
         - Populating an assignee picker outside of a project context
@@ -3411,8 +3454,9 @@ paths:
         - Resolving email → user ID for offline users
 
         **Behavior notes:**
-        - Does **not** return the caller themselves.
-        - Users with whom the caller only shares archived / deleted projects may still appear; the repository filters by membership, not by state.
+        - Returns only **active sharing connections**: users who are currently workers or owners of at least one of the caller's active projects (workers' user accounts must also be in active state).
+        - Archived / deleted / template projects are **not** considered when computing the result set.
+        - Historical co-workers (people the caller used to share a project with but no longer does) are **not** returned. For a full historical view of past collaborators, use the Freelo web application.
       operationId: getAllUsers
       parameters:
         - $ref: '#/components/parameters/PageParam'
@@ -3432,7 +3476,7 @@ paths:
                           users:
                             type: array
                             items:
-                              $ref: '#/components/schemas/UserBasic'
+                              $ref: '#/components/schemas/UserWithEmail'
 
   /users/project-manager-of:
     get:
@@ -3721,9 +3765,14 @@ paths:
               type: string
         - name: only_unread
           in: query
+          description: >-
+            Only return unread notifications. Pass `1` to enable, `0` to
+            disable — string values like `true`/`false` are not accepted and
+            silently fall back to the default.
           schema:
-            type: boolean
-            default: false
+            type: integer
+            enum: [0, 1]
+            default: 0
         - $ref: '#/components/parameters/PageParam'
       responses:
         '200':
@@ -4931,11 +4980,31 @@ components:
 
     UserBasic:
       type: object
+      required:
+        - id
+        - fullname
+        - mention_key
       properties:
         id:
           type: integer
         fullname:
           type: string
+        mention_key:
+          type: string
+          description: |
+            Normalized form of `fullname` (whitespace stripped, diacritics removed) used as the visible text after `@` inside a mention span. Build a mention with:
+            `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>`
+
+    UserWithEmail:
+      allOf:
+        - $ref: '#/components/schemas/UserBasic'
+        - type: object
+          properties:
+            email:
+              type: string
+              format: email
+          required:
+            - email
 
     Client:
       type: object
@@ -5800,11 +5869,13 @@ components:
         date_add:
           type: string
           format: date-time
-          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          description: 'Insertion timestamp of the work report (when the row was created in the DB). Naive ISO8601 in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
           example: '2026-04-24T11:12:38'
         date_reported:
           type: string
-          format: date
+          format: date-time
+          description: 'Start timestamp of the work session. Naive ISO8601 in Europe/Prague timezone (no offset). End time is derived as `date_reported + minutes`. See "Timestamp Format" in API description.'
+          example: '2026-04-24T08:00:00'
         note:
           type: string
           nullable: true
