@@ -952,7 +952,7 @@ Paginated list of notifications addressed to the authenticated caller.
 - `teams_uuids[]` [query] (array<string<uuid>>)
 - `order` [query] (string enum: asc|desc)
 - `notification_types[]` [query] (array<string>)
-- `only_unread` [query] (boolean)
+- `only_unread` [query] (integer enum: 0|1) — Only return unread notifications. Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default.
 - `p` [query] (integer) — Page number (starting from 0)
 
 **Responses:**
@@ -2057,7 +2057,7 @@ Returns the workers who are allowed to be set as `worker` on tasks inside this t
 
 **Responses:**
 
-- `200` — Successful response _(schema: `array<UserBasic>`)_
+- `200` — Successful response _(schema: `array<UserWithEmail>`)_
 
 ---
 
@@ -2199,10 +2199,10 @@ Paginated global task search. Combines fulltext search (via Elasticsearch), stru
 - `with_labels[]` [query] (array<string>) — Filter tasks that have at least one of the specified labels (case insensitive). Can be combined with with_label.
 - `with_label` [query] (string) — Filter tasks by a single label name (case insensitive). If with_labels[] is also provided, this value is merged into that array.
 - `without_label` [query] (string) — Exclude tasks that have the specified label (case insensitive)
-- `no_due_date` [query] (boolean) — Only tasks with no due date
+- `no_due_date` [query] (integer enum: 0|1) — Only tasks with no due date. Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default.
 - `due_date_range[date_from]` [query] (string<date>) — Filter tasks with due date on or after this date
 - `due_date_range[date_to]` [query] (string<date>) — Filter tasks with due date on or before this date
-- `finished_overdue` [query] (boolean) — Only tasks finished after due date
+- `finished_overdue` [query] (integer enum: 0|1) — Only tasks finished after due date. Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default.
 - `finished_date_range[date_from]` [query] (string<date>) — Filter tasks finished on or after this date
 - `finished_date_range[date_to]` [query] (string<date>) — Filter tasks finished on or before this date
 - `worker_id` [query] (integer) — Filter by worker ID
@@ -2986,7 +2986,8 @@ Updates the caller's currently running session — typically used to switch the 
 - There is no session ID — the endpoint always targets the caller's single active session.
 - Returns HTTP **409 Conflict** with `"Timetracking is not running."` if no session is active.
 - Setting `task_id=null` disassociates the session from any task (continues as general work).
-- Elapsed minutes are preserved; only the tracked task / note change.
+- All body fields are partial — only fields present in the payload are updated; omitted fields keep their current value.
+- Passing `date_reported` rewrites the session's start time (e.g. to backdate a forgotten timer). Elapsed duration on `/timetracking/stop` is computed from this value to "now".
 
 **Request body:**
 
@@ -2997,6 +2998,7 @@ _Request body_
 - Properties:
     - `task_id` (integer) — ID of the task to reassign the session to. Can be used to switch tasks on an active session.
     - `note` (string) — Updated note for the time tracking session.
+    - `date_reported` (string<date-time>) — New start timestamp for the running session (ISO 8601, e.g. `2026-05-07T09:00:00+02:00`). Used to correct or backdate the timer's start time. The work report produced by `/timetracking/stop` will compute its duration from this value.
 
 **Responses:**
 
@@ -3184,7 +3186,7 @@ _Request body (required)_
 
 `operationId`: `getAllUsers`
 
-Paginated list of users the authenticated caller shares at least one project with — effectively their "coworkers book".
+Paginated list of users the authenticated caller shares at least one **active** project with — effectively their current "coworkers book".
 
 **Use cases:**
 - Populating an assignee picker outside of a project context
@@ -3192,8 +3194,9 @@ Paginated list of users the authenticated caller shares at least one project wit
 - Resolving email → user ID for offline users
 
 **Behavior notes:**
-- Does **not** return the caller themselves.
-- Users with whom the caller only shares archived / deleted projects may still appear; the repository filters by membership, not by state.
+- Returns only **active sharing connections**: users who are currently workers or owners of at least one of the caller's active projects (workers' user accounts must also be in active state).
+- Archived / deleted / template projects are **not** considered when computing the result set.
+- Historical co-workers (people the caller used to share a project with but no longer does) are **not** returned. For a full historical view of past collaborators, use the Freelo web application.
 
 **Parameters:**
 
@@ -3310,7 +3313,7 @@ _Request body (required)_
 - Content-Type: `application/json`
 - Schema: `object`
 - Properties:
-    - `date_reported` (string<date>)
+    - `date_reported` (string) — Start timestamp of the work session. Accepts either a full ISO 8601 datetime (`2026-05-08T08:00:00+02:00`) or a date-only string (`2026-05-08`). Datetime form records the exact start moment; date-only defaults to start of day.
     - `worker_id` (integer)
     - `minutes` **required** (integer)
     - `cost` (string) — Currency amount (2 decimal places × 100)
@@ -3352,7 +3355,7 @@ Returns work reports — finalized time entries — filtered by project, user, t
 - `date_add_range[date_from]` [query] (string<date>)
 - `date_add_range[date_to]` [query] (string<date>)
 - `date_edited_from` [query] (string<date>)
-- `with_own_taskless` [query] (boolean) — Include the authenticated user's work reports without an associated task. Automatically filters by the authenticated user.
+- `with_own_taskless` [query] (integer enum: 0|1) — Include the authenticated user's work reports without an associated task. Automatically filters by the authenticated user. Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default. Mutually exclusive with `users_ids[]`.
 - `p` [query] (integer) — Page number (starting from 0)
 
 **Responses:**
@@ -3418,9 +3421,9 @@ _Request body (required)_
 - Properties:
     - `minutes` (integer)
     - `cost` (string)
-    - `date_reported` (string<date>)
-    - `note` (string)
-    - `task_id` (integer)
+    - `date_reported` (string) — Start timestamp of the work session. Accepts either a full ISO 8601 datetime (`2026-05-08T08:00:00+02:00`) or a date-only string (`2026-05-08`). Datetime form records the exact start moment; date-only defaults to start of day.
+    - `note` (string) — Note for the work report. Pass `null` to clear an existing note. Empty string is rejected.
+    - `task_id` (integer) — ID of the task this work report belongs to. Pass `null` to detach the report from its current task.
 
 **Responses:**
 

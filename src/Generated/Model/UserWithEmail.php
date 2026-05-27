@@ -10,14 +10,15 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Generated\Model;
 
 /**
- * UserBasic model.
+ * UserWithEmail model.
  */
-class UserBasic
+class UserWithEmail
 {
     public function __construct(
         public readonly int $id,
         public readonly string $fullname,
         public readonly string $mentionKey,
+        public readonly string $email,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -32,6 +33,7 @@ class UserBasic
             id: (int) ($data['id'] ?? 0),
             fullname: (string) ($data['fullname'] ?? ''),
             mentionKey: (string) ($data['mention_key'] ?? ''),
+            email: (string) ($data['email'] ?? ''),
             data: $data,
         );
     }
