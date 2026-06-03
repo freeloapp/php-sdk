@@ -85,6 +85,33 @@ class TasklistResource extends AbstractResource
     }
 
     /**
+     * Edit a tasklist
+     *
+     * All fields are optional - only keys present in $data are applied.
+     *
+     * @param array<string, mixed> $data Available fields:
+     *   - name: string - New tasklist name
+     *   - budget: string|null - Amount in minor currency units as string
+     *     (e.g. "100000" for 1000.00); null or "0" clears
+     *   - time_budget_minutes: int|null - Time fund in minutes (>= 0); null clears
+     *   - priority: int - New position within the project (1 = first); positional ordering, not task priority
+     *   - tracking_users_ids: int[] - Followers; [] clears all
+     *   - should_change_existing_tasks: bool - Propagate follower change to existing tasks
+     *   - worker_id: int|null - Default worker; null clears
+     * @return bool True when the priority change was applied (or not requested).
+     *   False means the other fields committed but the priority renumber failed -
+     *   retry the priority field alone.
+     * @throws ApiException
+     */
+    public function edit(int $tasklistId, array $data): bool
+    {
+        $response = $this->client->post("tasklist/{$tasklistId}/edit", $data);
+        $responseData = $this->parser->parseSingle($response);
+
+        return (bool) ($responseData['priorityApplied'] ?? true);
+    }
+
+    /**
      * Create tasklist from template
      *
      * @param array<string, mixed> $data

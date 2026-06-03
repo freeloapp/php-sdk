@@ -8,7 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`TasklistResource::edit()`** — new `POST /tasklist/{id}/edit` endpoint. Partial updates of name, budget, time fund, priority (positional ordering), followers and default worker. Returns the API's `priorityApplied` flag — `false` means the other fields committed but the priority renumber failed (best-effort semantics; retry the priority alone).
+- **Taskcheck endpoints on `SubtaskResource`** — `updateTaskcheck()` (name/worker only), `deleteTaskcheck()`, `finishTaskcheck()`, `activateTaskcheck()` for simple checklist items via the new `/taskcheck/{taskcheck_id}/*` API endpoints. Smart subtask IDs return 404 on these — use the task endpoints for those.
+- **`TaskLabelResource::findAvailable()`** — new `GET /task-labels/find-available` endpoint; returns all task labels usable by the authenticated user, sorted by name.
+- **`User::$mentionKey`** — normalized fullname used as the visible text after `@` in comment mention spans; now returned by the API on `UserBasic` shapes (and surfaced in `/users/get-authenticated`).
+- **`Task::$type`** — `task`/`subtask` discriminator newly exposed on task detail responses.
+- **`Subtask::$type`** — `subtask` (smart subtask) vs `taskcheck` (simple checklist item) discriminator.
+- **`SearchResult::isTaskcheck()`** — helper for the new `taskcheck` search hit type.
+- **`TimeTrackingResource::edit()` accepts `$dateReported`** — rewrites the running session's start time (backdating a forgotten timer); `/timetracking/stop` computes the duration from it.
+- **`my_priorities` filter** documented on `TaskResource::getAll()` — only tasks in the authenticated user's priorities.
 - **`update-api-spec.yml` workflow** — weekly (Monday 06:00 UTC) and manually triggerable job that downloads the latest upstream OpenAPI spec (`make spec`), regenerates models + endpoints digest (`composer generate`), runs PHPStan/PHPCS/tests against the new client, and opens a `chore/update-api-spec` PR via `peter-evans/create-pull-request` if anything changed. Mirrors the equivalent automation in the Go SDK; `openapi-check.yml` remains for drift detection on every push/PR.
+
+### Changed
+- **Synced OpenAPI spec to upstream** — new endpoints above plus: `page` documented as alias of the `p` pagination param across list endpoints; boolean-ish query params (`no_due_date`, `finished_overdue`, `only_unread`, …) documented as strict `0`/`1` integers (string `true`/`false` silently falls back to default); fulltext search request documents `exclude_entity_types`, `is_subtask`, `sort` (`last_updated` `ASC`/`DESC`), `taskcheck` entity type and `lang` enum (`cs_cz`/`en_us`); several list endpoints now return `UserWithEmail` instead of `UserBasic`; `WorkReport.date_reported` documented as full datetime (start of work session) rather than date. Generated models and `docs/ENDPOINTS.md` regenerated (new `UserWithEmail` model).
+- **`SearchResult::isComment()`** now also matches the granular comment hit types the search API actually returns (`task_comment`, `note_comment`, `file_comment`, `link_comment`).
+- **`SearchResource::search()`** PHPDoc documents the full filter set (entity types, states, structural narrowing, due-date range, sort, lang, paging).
+
+### Fixed
+- **`ProjectLabelResource::findAvailable()`** — reads the `labels` response key (API renamed it from the erroneous singular `label`; the old key is still read as fallback).
 
 ## [2.0.0] - 2026-05-01
 

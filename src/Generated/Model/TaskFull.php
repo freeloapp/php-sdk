@@ -29,9 +29,11 @@ class TaskFull
         public readonly ?int $parentTaskId = null,
         public readonly mixed $totalTimeEstimate,
         public readonly array $usersTimeEstimates = [],
+        public readonly ?string $type = null,
         public readonly mixed $state,
         public readonly mixed $project,
         public readonly mixed $tasklist,
+        public readonly ?string $priorityEnum = null,
         public readonly array $customFields = [],
         /** @var array<string, mixed> */
         public readonly array $data = [],
@@ -60,9 +62,11 @@ class TaskFull
             totalTimeEstimate: isset($data['total_time_estimate']) ? $data['total_time_estimate'] : null,
             usersTimeEstimates: isset($data['users_time_estimates']) && is_array($data['users_time_estimates'])
                 ? $data['users_time_estimates'] : [],
+            type: isset($data['type']) ? (string) $data['type'] : null,
             state: isset($data['state']) ? $data['state'] : null,
             project: isset($data['project']) ? $data['project'] : null,
             tasklist: isset($data['tasklist']) ? $data['tasklist'] : null,
+            priorityEnum: isset($data['priority_enum']) ? (string) $data['priority_enum'] : null,
             customFields: isset($data['custom_fields']) && is_array($data['custom_fields'])
                 ? $data['custom_fields'] : [],
             data: $data,

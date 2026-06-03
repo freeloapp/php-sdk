@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Resource;
 
 use Freelo\Sdk\Exception\ApiException;
+use Freelo\Sdk\Model\TaskLabel;
 
 /**
  * Task label resource manager
@@ -16,6 +17,26 @@ class TaskLabelResource extends AbstractResource
     protected function getEndpoint(): string
     {
         return 'task-labels';
+    }
+
+    /**
+     * Find all task labels usable by the authenticated user
+     *
+     * Returns labels attached to tasks across the caller's owned and invited
+     * projects (active, archived or template). Sorted by name ascending.
+     *
+     * @return TaskLabel[]
+     * @throws ApiException
+     */
+    public function findAvailable(): array
+    {
+        $response = $this->client->get('task-labels/find-available');
+        $data = $this->parser->parseSingle($response);
+
+        return array_map(
+            fn(array $item) => TaskLabel::fromArray($item),
+            $data['labels'] ?? []
+        );
     }
 
     /**

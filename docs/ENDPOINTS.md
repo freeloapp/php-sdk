@@ -7,7 +7,7 @@
 
 This digest exists to give LLMs and humans fast access to endpoint semantics (use cases, behavior notes, side effects) without parsing the full spec. Regenerated from `.openapi/freelo-api.yaml` on every `composer generate`.
 
-Total endpoints: **108** across 19 tag(s).
+Total endpoints: **114** across 19 tag(s).
 
 ## Table of contents
 
@@ -24,9 +24,9 @@ Total endpoints: **108** across 19 tag(s).
 - [Search](#search) — 1 endpoint
 - [States](#states) — 1 endpoint
 - [Subtasks](#subtasks) — 2 endpoints
-- [Task Labels](#task-labels) — 3 endpoints
-- [Tasklists](#tasklists) — 5 endpoints
-- [Tasks](#tasks) — 25 endpoints
+- [Task Labels](#task-labels) — 4 endpoints
+- [Tasklists](#tasklists) — 6 endpoints
+- [Tasks](#tasks) — 29 endpoints
 - [Time Tracking](#time-tracking) — 4 endpoints
 - [Users](#users) — 7 endpoints
 - [Work Reports](#work-reports) — 4 endpoints
@@ -57,7 +57,8 @@ Global comment feed across all accessible projects / tasks / files / docs / link
 - `type` [query] (string enum: all|task|document|file|link) — Comment type
 - `order_by` [query] (string enum: date_add|date_edited_at)
 - `order` [query] (string enum: asc|desc)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -578,7 +579,8 @@ Paginated activity feed across projects, tasks, users, and event types the calle
 - `date_range[date_from]` [query] (string<date>)
 - `date_range[date_to]` [query] (string<date>)
 - `tasks_ids[]` [query] (array<integer>)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -608,7 +610,8 @@ Global listing of **all four types of project assets** — directories, links, f
 
 - `projects_ids[]` [query] (array<integer>)
 - `type` [query] (string enum: directory|link|file|document)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -805,7 +808,8 @@ Returns a paginated list of invoice draft groups ("issued invoices") — each re
 - `date_range[date_from]` [query] (string<date>)
 - `date_range[date_to]` [query] (string<date>)
 - `projects_ids[]` [query] (array<integer>)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -953,7 +957,8 @@ Paginated list of notifications addressed to the authenticated caller.
 - `order` [query] (string enum: asc|desc)
 - `notification_types[]` [query] (array<string>)
 - `only_unread` [query] (integer enum: 0|1) — Only return unread notifications. Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default.
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -1161,7 +1166,7 @@ Returns all project labels (tags) the authenticated user can assign — their ow
 - Showing the caller which labels already exist so they don't create a duplicate
 
 **Behavior notes:**
-- Response field is `label` (singular) — it is an array. The tag's `tag` entity property is exposed as `name` in API shape (the TagNameKeyReplacer maps it).
+- Response field is `labels` — an array. The tag's `tag` entity property is exposed as `name` in API shape (the TagNameKeyReplacer maps it).
 
 **Responses:**
 
@@ -1288,7 +1293,7 @@ Paginated collection of all projects the authenticated user can see — both own
 - Narrow search by state (active / archived / template) combined with tag and owner filters
 
 **Behavior notes:**
-- Pagination is **required** for large accounts — use `p` parameter; page size is fixed server-side.
+- Pagination is **required** for large accounts — use `p` (or its alias `page`); page size is fixed server-side.
 - `states_ids[]` accepts any combination of `1=active`, `2=archived`, `3=template`. When omitted, the server applies a default (typically active only) — always pass it explicitly if you need archived/templates.
 - `tags[]` matches any of the specified tags; pass the literal string `"without"` to get projects **without** any tag (this is a magic value, not a real tag name).
 - `users_ids[]` filters by project **owner** only, not by workers.
@@ -1303,7 +1308,8 @@ Paginated collection of all projects the authenticated user can see — both own
 - `users_ids[]` [query] (array<integer>) — Filter by project owner IDs
 - `created_in_range[date_from]` [query] (string<date>)
 - `created_in_range[date_to]` [query] (string<date>)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -1331,7 +1337,8 @@ Paginated list of projects the authenticated user can see that are in the **arch
 
 **Parameters:**
 
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -1358,7 +1365,8 @@ Paginated list of active projects where the authenticated user is a worker — i
 
 **Parameters:**
 
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -1612,7 +1620,8 @@ Paginated list of all users (workers + owner + guests) assigned to the given pro
 **Parameters:**
 
 - `project_id` [path, required] (integer)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -1711,7 +1720,8 @@ Paginated list of **project templates** (projects in state 3 — template) the c
 - `users_ids[]` [query] (array<integer>)
 - `created_in_range[date_from]` [query] (string<date>)
 - `created_in_range[date_to]` [query] (string<date>)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -1743,7 +1753,8 @@ Paginated list of projects where the given `user_id` is the **owner**, intersect
 - `states_ids[]` [query] (array<integer enum: 1|2|3>) — States: 1=active, 2=archived, 3=template
 - `order_by` [query] (string enum: name|date_add|date_edited_at)
 - `order` [query] (string enum: asc|desc)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -1759,21 +1770,70 @@ Paginated list of projects where the given `user_id` is the **owner**, intersect
 
 `operationId`: `search`
 
-Unified fulltext search powered by Elasticsearch. Supports entity-type scoping (task, subtask, project, tasklist, file, comment), structural narrowing (projects, tasklists, workers, authors), state and due-date filtering.
+Unified fulltext search powered by Elasticsearch. Combines a required text query with a rich set of filters: entity-type scope, structural narrowing (projects / tasklists / tasks / authors / workers), state, subtask flag, due-date range and sorting.
 
-**Use cases:**
+## What you can filter on
+
+| Filter | Type | Effect |
+| --- | --- | --- |
+| `search_query` | string | Required fulltext query (2–200 chars after trim). Wrap a fragment in **double quotes** for an ordered exact-match phrase, e.g. `"sentry issue 123"`. |
+| `entity_type` | string | Narrow to **one** entity category. See **Entity types** table below. |
+| `exclude_entity_types` | array of string | Exclude one or more categories. Same value set as `entity_type`. Useful e.g. to search everything *except* comments. |
+| `state_ids` | array of string | Restrict by lifecycle state. Defaults to `["active"]` — pass explicit values to also get archived / finished / template results. See **State IDs** table below. |
+| `projects_ids` | array of int | Only hits inside (or attached to) these projects. |
+| `tasklists_ids` | array of int | Only hits inside (or attached to) these tasklists. |
+| `tasks_ids` | array of int | Only hits inside (or attached to) these tasks (e.g. comments / files of a given task). |
+| `authors_ids` | array of int | Filter by author/creator (`entityOwner`). |
+| `workers_ids` | array of int | Filter by assignee. Meaningful for tasks/subtasks only. |
+| `is_subtask` | bool | When `true`, restricts to smart-subtask documents (subtasks, checklist items and comments under a subtask). Default `false`. |
+| `due_date.date_from` / `due_date.date_to` | date (`YYYY-MM-DD`) | Restrict by due-date range. At least one of the two must be set when the `due_date` object is provided. |
+| `sort` | object | Optional `{ order_by, order }`. Only sort field currently supported is `last_updated`; `order` is `asc` or `desc`. Omitting `sort` returns results by relevance score. |
+| `lang` | string | Language used for the Elasticsearch analyzer / stemmer. `cs_cz` (default) or `en_us`. |
+| `page` / `limit` | int | Pagination — `page` is zero-based; `limit` default `100`. |
+
+## Entity types (`entity_type` / `exclude_entity_types`)
+
+The seven accepted input values expand to one or more underlying Elasticsearch document types.
+
+| Input value | Matches ES document types |
+| --- | --- |
+| `task` | `task` (top-level tasks only — excludes smart subtasks) |
+| `subtask` | smart subtasks (`task` with `isSmart=true`) **and** `taskcheck` (checklist items) |
+| `taskcheck` | `taskcheck` (checklist items only) |
+| `project` | `project` |
+| `tasklist` | `tasklist` |
+| `file` | `file`, `link`, `note` |
+| `comment` | `task_comment`, `note_comment`, `file_comment`, `link_comment` |
+
+
+## State IDs
+
+| Value | Meaning |
+| --- | --- |
+| `active` | Default — open / in-progress tasks, active projects/tasklists. |
+| `finished` | Tasks closed via *Finish*. |
+| `archived` | Archived projects / tasklists. |
+| `archived_finished` / `archived_unfinished` | Sub-states of archived for finer reporting. |
+| `template` | Project / tasklist templates only. |
+| `not_template` | Everything except templates. |
+
+State filtering also shapes which **parent entities** are required/forbidden — e.g. `["archived"]` forces results to belong to an archived project/tasklist; `["template"]` restricts to template projects/tasklists.
+
+## Use cases
+
 - Global search bar in the UI
 - Content-discovery integrations ("find comments about Sentry issue 123")
 - Reporting that starts from a text query ("find all tasks mentioning keyword X in last quarter")
+- "Search everywhere except comments" — `exclude_entity_types: ["comment"]`
+- "Find checklist items in this project" — `entity_type: "taskcheck"` + `projects_ids`
 
-**Behavior notes (non-obvious):**
-- `POST` method despite being a read — request bodies are JSON because query filters are too complex for query strings.
-- `search_query` is **required**. Passing only filters without a text query is not supported here; use tag-specific list endpoints (like `/all-tasks`) for filter-only queries.
-- `state_ids` defaults to `["active"]` — pass explicit states if you also want archived / finished / template results.
-- `entity_type` narrows to a single category; omit for mixed results.
+## Behavior notes (non-obvious)
+
+- `POST` method despite being a read — request body is JSON because filters are too complex for query strings.
+- `search_query` is **required** (2–200 chars after trim). Passing only filters without a text query is not supported here — use tag-specific list endpoints (e.g. `/all-tasks`) for filter-only queries.
 - ACL-filtered — Elasticsearch returns only documents the caller can read based on project membership.
-- `lang` influences analyzer / stemming — defaults to account language.
-- Query length is capped; `ElasticsearchQueryLengthExceededException` → 400 with a UserVisibleErrorMessage.
+- Query length over 200 chars → `400` with a user-visible message (`ElasticsearchQueryLengthExceededException`).
+- Unknown `entity_type` / `exclude_entity_types` / `lang` value → `400` with a user-visible message listing accepted values.
 
 **Request body:**
 
@@ -1782,18 +1842,21 @@ _Request body (required)_
 - Content-Type: `application/json`
 - Schema: `object`
 - Properties:
-    - `search_query` **required** (string)
-    - `projects_ids` (array<integer>)
-    - `tasklists_ids` (array<integer>)
-    - `tasks_ids` (array<integer>)
-    - `authors_ids` (array<integer>)
-    - `workers_ids` (array<integer>)
-    - `state_ids` (array<string enum: active|archived|finished|template|not_template|archived_finished|archived_unfinished>)
-    - `lang` (string)
-    - `due_date` (object)
-    - `entity_type` (string enum: task|subtask|project|tasklist|file|comment)
-    - `page` (integer)
-    - `limit` (integer)
+    - `search_query` **required** (string) — Fulltext query (2–200 chars after trimming). Double-quoted fragments are matched as ordered exact phrases; the rest as loose terms.
+    - `entity_type` (string enum: task|subtask|taskcheck|project|tasklist|file|comment) — Narrow to a single category. See the **Entity types** table in the endpoint description for the underlying ES document types each value maps to. Omit for mixed results.
+    - `exclude_entity_types` (array<string enum: task|subtask|taskcheck|project|tasklist|file|comment>) — Exclude one or more categories (same vocabulary as `entity_type`).
+    - `state_ids` (array<string enum: active|archived|finished|template|not_template|archived_finished|archived_unfinished>) — Lifecycle states to include. Defaults to `["active"]` if omitted or empty.
+    - `projects_ids` (array<integer>) — Restrict to these projects (or to documents attached to them).
+    - `tasklists_ids` (array<integer>) — Restrict to these tasklists (or to documents attached to them).
+    - `tasks_ids` (array<integer>) — Restrict to these tasks (or to documents attached to them — e.g. comments / files of the listed tasks).
+    - `authors_ids` (array<integer>) — Filter by author (entity owner) user IDs.
+    - `workers_ids` (array<integer>) — Filter by assignee user IDs. Meaningful for tasks / subtasks.
+    - `is_subtask` (boolean) — When `true`, restrict to smart-subtask documents (subtasks, checklist items and their comments).
+    - `due_date` (object) — Due-date range. At least one of `date_from` / `date_to` must be set when this object is present.
+    - `sort` (object) — Optional sort. Omit for relevance-score ordering.
+    - `lang` (string enum: cs_cz|en_us) — Language used by the Elasticsearch analyzer / stemmer.
+    - `page` (integer) — Zero-based page index.
+    - `limit` (integer) — Page size.
 
 **Responses:**
 
@@ -1845,7 +1908,8 @@ Paginated list of subtasks ("taskchecks") under the given task. Subtasks come in
 **Parameters:**
 
 - `task_id` [path, required] (integer)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -1961,6 +2025,28 @@ _Request body (required)_
 
 ---
 
+### `GET /task-labels/find-available`
+
+**Get task labels usable by caller**
+
+`operationId`: `findAvailableTaskLabels`
+
+Returns all task labels usable by the authenticated user — labels attached to tasks across the caller's owned and invited projects in `ACTIVE`, `ARCHIVED`, or `TEMPLATE` state.
+
+**Use cases:**
+- Populating a label picker before calling `/task-labels/add-to-task/{task_id}`
+- Showing the caller which task labels already exist so they don't create a duplicate via the name+color fetch-or-create modes
+
+**Behavior notes:**
+- Sorted by `name` ascending.
+- If the caller has no accessible projects, returns `{ "labels": [] }`.
+
+**Responses:**
+
+- `200` — Successful response
+
+---
+
 ### `POST /task-labels/remove-from-task/{task_id}`
 
 **Detach labels from task**
@@ -2026,7 +2112,8 @@ Paginated list of tasklists visible to the caller, across all accessible project
 - `projects_ids[]` [query] (array<integer>)
 - `order_by` [query] (string enum: name|date_add|date_edited_at)
 - `order` [query] (string enum: asc|desc)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -2090,6 +2177,7 @@ _Request body (required)_
 - Properties:
     - `name` **required** (string)
     - `budget` (string) — Currency amount (2 decimal places, no separator)
+    - `priority` (integer) — Position (order) of the tasklist within the project, 1 = first. Tasklists currently at this position or below shift down by 1 to make room. Values past the end of the list are clamped to `last + 1`. Omit to append at the end. Note: despite the name, this is positional ordering — not to be confused with task `priority_enum` (low/medium/high importance).
 
 **Responses:**
 
@@ -2165,6 +2253,53 @@ Returns metadata for a single tasklist — name, budget, parent project referenc
 
 ---
 
+### `POST /tasklist/{tasklist_id}/edit`
+
+**Edit tasklist**
+
+`operationId`: `editTasklist`
+
+Updates one or more fields of an existing tasklist. Every field is optional — only the keys present in the request body are applied.
+
+**Use cases:**
+- Renaming a tasklist, adjusting its budget / time fund
+- Reordering tasklists within a project (`priority` field)
+- Managing followers (`tracking_users_ids`) and the default worker
+
+**Behavior notes:**
+- `budget`: send `null` or `0` to clear it.
+- `time_budget_minutes`: send `null` to clear; values must be >= 0.
+- `priority`: new position (order) of the tasklist within the project, 1 = first. Other tasklists in the moved-over range shift by ±1 to fill the gap. Values past the end are clamped to the last position. Despite the name, this is positional ordering — not task importance (`priority_enum`).
+
+  **Best-effort semantics:** the priority renumber runs outside the transaction that commits `name`, `budget`, `time_budget_minutes`, `tracking_users_ids` and `worker_id`. A failure of the priority renumber does NOT roll back the other fields. The response contains a `priorityApplied` flag — if `false`, the rest of the edit succeeded but the priority change did not; the client may retry the priority update separately.
+- `tracking_users_ids`: send `[]` to clear all followers. IDs of users without access to the tasklist are silently filtered out. Combine with `should_change_existing_tasks: true` to also propagate the change to every existing task.
+- `worker_id`: send `null` to clear the default worker.
+
+**Parameters:**
+
+- `tasklist_id` [path, required] (integer)
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `name` (string)
+    - `budget` (string) — Integer amount in minor currency units, encoded as a string (e.g. "100000" for 1000.00). `null` or `"0"` clears the budget. Decimal strings ("100.50") are rejected with HTTP 400.
+    - `time_budget_minutes` (integer)
+    - `priority` (integer)
+    - `tracking_users_ids` (array<integer>)
+    - `should_change_existing_tasks` (boolean)
+    - `worker_id` (integer)
+
+**Responses:**
+
+- `200` — Tasklist updated
+
+---
+
 ## Tasks
 
 ### `GET /all-tasks`
@@ -2187,6 +2322,7 @@ Paginated global task search. Combines fulltext search (via Elasticsearch), stru
 - `no_due_date=true` returns only tasks without a due date; combining with `due_date_range` is effectively contradictory and the range is ignored.
 - `finished_overdue=true` filters for tasks finished **after** their due date — a reporting lens for delivery SLAs.
 - `worker_id` filters by assignee only (not by tracking users).
+- `my_priorities=1` returns only tasks the authenticated user has added to their priorities.
 
 **Parameters:**
 
@@ -2206,7 +2342,9 @@ Paginated global task search. Combines fulltext search (via Elasticsearch), stru
 - `finished_date_range[date_from]` [query] (string<date>) — Filter tasks finished on or after this date
 - `finished_date_range[date_to]` [query] (string<date>) — Filter tasks finished on or before this date
 - `worker_id` [query] (integer) — Filter by worker ID
-- `p` [query] (integer) — Page number (starting from 0)
+- `my_priorities` [query] (integer enum: 0|1) — Only tasks in the authenticated user's priorities ("my priorities"). Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default.
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -2464,6 +2602,7 @@ _Request body (required)_
 - Schema: `object`
 - Properties:
     - `name` (string)
+    - `description` (object) — Task description as an object, identical to the POST /task/{task_id}/description request body. Files are downloaded from download_url, attached to the description, and the description file set is reconciled (files no longer present are archived).
     - `due_date` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.
     - `due_date_end` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.
     - `worker` (integer)
@@ -2901,6 +3040,88 @@ _Request body (required)_
 
 ---
 
+### `DELETE /taskcheck/{taskcheck_id}`
+
+**Delete a simple checklist item**
+
+`operationId`: `deleteTaskcheck`
+
+Soft-deletes a simple checklist item (a `tasks_checks` row with no smart-task counterpart). A smart taskcheck id returns 404 — use `DELETE /task/{task_id}` for those.
+
+**Parameters:**
+
+- `taskcheck_id` [path, required] (integer) — ID of the taskcheck (`tasks_checks.id`)
+
+**Responses:**
+
+- `200` — Successful response _(schema: `SuccessResponse`)_
+
+---
+
+### `POST /taskcheck/{taskcheck_id}`
+
+**Edit a simple checklist item**
+
+`operationId`: `editTaskcheck`
+
+Updates a simple checklist item (a `tasks_checks` row with no smart-task counterpart). Only `name` and `worker` are editable; sending `priority_enum`, `priority`, `due_date` or `due_date_end` returns 400. A smart taskcheck id (one whose checklist item has its own `tasks.id`) returns 404 — use `POST /task/{task_id}` for those.
+
+**Parameters:**
+
+- `taskcheck_id` [path, required] (integer) — ID of the taskcheck (`tasks_checks.id`)
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `name` (string)
+    - `worker` (integer) — User id of the worker to assign. Pass `null` to clear.
+
+**Responses:**
+
+- `200` — Successful response _(schema: `SuccessResponse`)_
+
+---
+
+### `POST /taskcheck/{taskcheck_id}/activate`
+
+**Reopen a finished simple checklist item**
+
+`operationId`: `activateTaskcheck`
+
+Moves a simple checklist item from the **finished** state back to **active**. A smart taskcheck id returns 404 — use `POST /task/{task_id}/activate` for those.
+
+**Parameters:**
+
+- `taskcheck_id` [path, required] (integer) — ID of the taskcheck (`tasks_checks.id`)
+
+**Responses:**
+
+- `200` — Successful response _(schema: `SuccessResponse`)_
+
+---
+
+### `POST /taskcheck/{taskcheck_id}/finish`
+
+**Mark a simple checklist item as finished**
+
+`operationId`: `finishTaskcheck`
+
+Moves a simple checklist item to the **finished** state. A smart taskcheck id returns 404 — use `POST /task/{task_id}/finish` for those.
+
+**Parameters:**
+
+- `taskcheck_id` [path, required] (integer) — ID of the taskcheck (`tasks_checks.id`)
+
+**Responses:**
+
+- `200` — Successful response _(schema: `SuccessResponse`)_
+
+---
+
 ### `GET /tasklist/{tasklist_id}/finished-tasks`
 
 **Get finished tasks in a tasklist**
@@ -2922,7 +3143,8 @@ Paginated list of **finished** (closed) tasks inside a given tasklist. Optionall
 
 - `tasklist_id` [path, required] (integer)
 - `search_query` [query] (string)
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -3200,7 +3422,8 @@ Paginated list of users the authenticated caller shares at least one **active** 
 
 **Parameters:**
 
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
@@ -3356,7 +3579,8 @@ Returns work reports — finalized time entries — filtered by project, user, t
 - `date_add_range[date_to]` [query] (string<date>)
 - `date_edited_from` [query] (string<date>)
 - `with_own_taskless` [query] (integer enum: 0|1) — Include the authenticated user's work reports without an associated task. Automatically filters by the authenticated user. Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default. Mutually exclusive with `users_ids[]`.
-- `p` [query] (integer) — Page number (starting from 0)
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 

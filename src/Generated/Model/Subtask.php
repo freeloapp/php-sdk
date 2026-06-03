@@ -16,6 +16,7 @@ class Subtask
 {
     public function __construct(
         public readonly ?int $id = null,
+        public readonly ?string $type = null,
         public readonly ?int $taskId = null,
         public readonly ?string $name = null,
         public readonly ?\DateTimeImmutable $dateAdd = null,
@@ -41,6 +42,7 @@ class Subtask
     {
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
+            type: isset($data['type']) ? (string) $data['type'] : null,
             taskId: isset($data['task_id']) ? (int) $data['task_id'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
             dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),

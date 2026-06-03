@@ -84,6 +84,26 @@ class SearchResultTest extends TestCase
         $this->assertFalse($taskResult->isComment());
     }
 
+    public function testIsCommentMatchesUnderscoreCommentTypes(): void
+    {
+        foreach (['task_comment', 'note_comment', 'file_comment', 'link_comment'] as $type) {
+            $result = SearchResult::fromArray(['id' => 1, 'type' => $type]);
+            $this->assertTrue($result->isComment(), "Type {$type} should be a comment");
+        }
+
+        $fileResult = SearchResult::fromArray(['id' => 2, 'type' => 'file']);
+        $this->assertFalse($fileResult->isComment());
+    }
+
+    public function testIsTaskcheck(): void
+    {
+        $taskcheckResult = SearchResult::fromArray(['id' => 1, 'type' => 'taskcheck']);
+        $taskResult = SearchResult::fromArray(['id' => 2, 'type' => 'task']);
+
+        $this->assertTrue($taskcheckResult->isTaskcheck());
+        $this->assertFalse($taskResult->isTaskcheck());
+    }
+
     public function testToArray(): void
     {
         $data = [

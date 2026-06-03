@@ -30,9 +30,10 @@ class ProjectLabelResource extends AbstractResource
         $response = $this->client->get('project-labels/find-available');
         $data = $this->parser->parseSingle($response);
 
+        // API returns 'labels'; older versions used 'label'
         return array_map(
             fn(array $item) => ProjectLabel::fromArray($item),
-            $data['label'] ?? []
+            $data['labels'] ?? $data['label'] ?? []
         );
     }
 

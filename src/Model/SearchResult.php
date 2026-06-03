@@ -59,10 +59,20 @@ class SearchResult
 
     /**
      * Check if this is a comment result
+     *
+     * Matches all comment types: task_comment, note_comment, file_comment, link_comment.
      */
     public function isComment(): bool
     {
-        return $this->type === 'comment';
+        return $this->type === 'comment' || str_ends_with($this->type, '_comment');
+    }
+
+    /**
+     * Check if this is a checklist item (taskcheck) result
+     */
+    public function isTaskcheck(): bool
+    {
+        return $this->type === 'taskcheck';
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Freelo\Sdk\Tests\Unit\Resource;
 use Freelo\Sdk\Http\FreeloClient;
 use Freelo\Sdk\Http\Response;
 use Freelo\Sdk\Http\ResponseParser;
+use Freelo\Sdk\Model\TaskLabel;
 use Freelo\Sdk\Resource\TaskLabelResource;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -27,6 +28,28 @@ class TaskLabelResourceTest extends TestCase
             ->willReturn($this->parser);
 
         $this->resource = new TaskLabelResource($this->client);
+    }
+
+    public function testFindAvailable(): void
+    {
+        $responseData = [
+            'labels' => [
+                ['uuid' => 'uuid-1', 'name' => 'Bug', 'color' => '#ff0000'],
+                ['uuid' => 'uuid-2', 'name' => 'Feature', 'color' => '#00ff00'],
+            ],
+        ];
+        $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('get')
+            ->with('task-labels/find-available')
+            ->willReturn($response);
+
+        $labels = $this->resource->findAvailable();
+
+        $this->assertCount(2, $labels);
+        $this->assertContainsOnlyInstancesOf(TaskLabel::class, $labels);
+        $this->assertSame('Bug', $labels[0]->name);
     }
 
     public function testCreate(): void

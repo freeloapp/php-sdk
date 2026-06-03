@@ -10,6 +10,17 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Generated\Model;
 
 /**
+ * Single search hit. Fields marked **conditional** below appear only for specific `type` values:
+ *
+ * | Conditional field | Appears when `type` is |
+ * | --- | --- |
+ * | `is_smart` | `task` |
+ * | `task` | `task` (only if it's a smart subtask), `taskcheck`, `task_comment` |
+ * | `smart_task` | `taskcheck`, `task_comment` (the smart-task ancestor, if any) |
+ * | `note` | `note_comment` |
+ * | `file` | `file_comment` |
+ * | `link` | `link_comment` |
+ *
  * SearchResult model.
  */
 class SearchResult
@@ -27,6 +38,11 @@ class SearchResult
         public readonly mixed $tasklist,
         public readonly ?int $state = null,
         public readonly ?bool $isSmart = null,
+        public readonly array $task = [],
+        public readonly array $smartTask = [],
+        public readonly array $note = [],
+        public readonly array $file = [],
+        public readonly array $link = [],
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -52,6 +68,16 @@ class SearchResult
             tasklist: isset($data['tasklist']) ? $data['tasklist'] : null,
             state: isset($data['state']) ? (int) $data['state'] : null,
             isSmart: isset($data['is_smart']) ? (bool) $data['is_smart'] : null,
+            task: isset($data['task']) && is_array($data['task'])
+                ? $data['task'] : [],
+            smartTask: isset($data['smart_task']) && is_array($data['smart_task'])
+                ? $data['smart_task'] : [],
+            note: isset($data['note']) && is_array($data['note'])
+                ? $data['note'] : [],
+            file: isset($data['file']) && is_array($data['file'])
+                ? $data['file'] : [],
+            link: isset($data['link']) && is_array($data['link'])
+                ? $data['link'] : [],
             data: $data,
         );
     }

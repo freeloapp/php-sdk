@@ -37,10 +37,11 @@ class TaskResource extends AbstractResource
      *   - worker_id: int - Filter by assigned worker
      *   - with_label: string - Include tasks with label (case insensitive)
      *   - without_label: string - Exclude tasks with label
-     *   - no_due_date: bool - Only tasks without due date
+     *   - no_due_date: int - Only tasks without due date (1 to enable, 0 to disable; booleans not accepted)
      *   - due_date_range: array{date_from?: string, date_to?: string} - Due date range (Y-m-d format)
      *   - finished_date_range: array{date_from?: string, date_to?: string} - Finished date range
-     *   - finished_overdue: bool - Only tasks finished after due date
+     *   - finished_overdue: int - Only tasks finished after due date (1 to enable, 0 to disable)
+     *   - my_priorities: int - Only tasks in the authenticated user's priorities (1 to enable, 0 to disable)
      *   - order_by: string - priority|name|date_add|date_edited_at
      *   - order: string - asc|desc
      *   - p: int - Page number (0-based)

@@ -16,6 +16,7 @@ class User
         public readonly int $id,
         public readonly string $fullname,
         public readonly ?string $email = null,
+        public readonly ?string $mentionKey = null,
         public readonly ?HourRate $hourRate = null,
         public readonly array $data = [],
     ) {
@@ -32,6 +33,7 @@ class User
             id: (int) ($data['id'] ?? 0),
             fullname: isset($data['fullname']) ? (string) $data['fullname'] : '',
             email: isset($data['email']) ? (string) $data['email'] : null,
+            mentionKey: isset($data['mention_key']) ? (string) $data['mention_key'] : null,
             hourRate: isset($data['hour_rate']) && is_array($data['hour_rate'])
                 ? HourRate::fromArray($data['hour_rate']) : null,
             data: $data,

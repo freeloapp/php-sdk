@@ -107,6 +107,34 @@ class TasklistResourceTest extends TestCase
         $this->assertInstanceOf(Tasklist::class, $list);
     }
 
+    public function testEdit(): void
+    {
+        $editData = ['name' => 'Renamed', 'priority' => 2];
+        $responseData = ['priorityApplied' => true];
+        $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with('tasklist/456/edit', $editData)
+            ->willReturn($response);
+
+        $this->assertTrue($this->resource->edit(456, $editData));
+    }
+
+    public function testEditReturnsFalseWhenPriorityNotApplied(): void
+    {
+        $editData = ['priority' => 5];
+        $responseData = ['priorityApplied' => false];
+        $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with('tasklist/456/edit', $editData)
+            ->willReturn($response);
+
+        $this->assertFalse($this->resource->edit(456, $editData));
+    }
+
     public function testCreateFromTemplate(): void
     {
         $createData = ['name' => 'From Template'];

@@ -77,9 +77,14 @@ class TimeTrackingResource extends AbstractResource
     /**
      * Edit running time tracking
      *
+     * All fields are partial - only provided values are updated.
+     *
+     * @param string|null $dateReported New start timestamp for the running session
+     *   (ISO 8601, e.g. '2026-05-07T09:00:00+02:00'). Used to correct or backdate
+     *   the timer's start time; elapsed duration on stop() is computed from this value.
      * @throws ApiException
      */
-    public function edit(?int $taskId = null, ?string $note = null): string
+    public function edit(?int $taskId = null, ?string $note = null, ?string $dateReported = null): string
     {
         $data = [];
         if ($taskId !== null) {
@@ -87,6 +92,9 @@ class TimeTrackingResource extends AbstractResource
         }
         if ($note !== null) {
             $data['note'] = $note;
+        }
+        if ($dateReported !== null) {
+            $data['date_reported'] = $dateReported;
         }
 
         $response = $this->client->post('timetracking/edit', $data);
