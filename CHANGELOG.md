@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-06-03
+
 ### Added
 - **`TasklistResource::edit()`** — new `POST /tasklist/{id}/edit` endpoint. Partial updates of name, budget, time fund, priority (positional ordering), followers and default worker. Returns the API's `priorityApplied` flag — `false` means the other fields committed but the priority renumber failed (best-effort semantics; retry the priority alone).
 - **Taskcheck endpoints on `SubtaskResource`** — `updateTaskcheck()` (name/worker only), `deleteTaskcheck()`, `finishTaskcheck()`, `activateTaskcheck()` for simple checklist items via the new `/taskcheck/{taskcheck_id}/*` API endpoints. Smart subtask IDs return 404 on these — use the task endpoints for those.
@@ -193,7 +195,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Code coverage reporting
 
-[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/freeloapp/php-sdk/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/freeloapp/php-sdk/compare/v1.3.0...v2.0.0
 [1.3.0]: https://github.com/freeloapp/php-sdk/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/freeloapp/php-sdk/compare/v1.1.0...v1.2.0
