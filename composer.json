@@ -79,6 +79,7 @@
             "@generate",
             "git diff --exit-code src/Generated/ docs/ENDPOINTS.md"
         ],
+        "check:endpoints": "php scripts/check-endpoint-coverage.php",
         "check": [
             "@test",
             "@analyse"

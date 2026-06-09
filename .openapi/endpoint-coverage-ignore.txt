@@ -1,0 +1,19 @@
+# Endpoint coverage ignore list
+#
+# Spec operations intentionally NOT implemented by src/Resource/*.
+# Format: one "METHOD /path" per line, with {} for every path parameter
+# (matches the normalization in scripts/check-endpoint-coverage.php).
+# Blank lines and #-comments are ignored.
+#
+# This file is the drift baseline: scripts/check-endpoint-coverage.php fails
+# only on spec operations that are NEITHER implemented NOR listed here. Keep it
+# tight — every entry is a known gap, not a dumping ground. Remove a line once
+# the endpoint is implemented in a resource so the SDK stays honest.
+
+# --- Known gaps as of 2026-06-09 (task relations + multi-project tasks) ---
+# Implement these in TaskResource and drop the lines, or leave them parked
+# here until product decides the SDK should cover them.
+GET /task/{}/relations
+POST /tasks/relations
+POST /task/{}/projects
+DELETE /task/{}/projects/{}
