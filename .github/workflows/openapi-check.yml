@@ -5,16 +5,20 @@ on:
     paths:
       - '.openapi/**'
       - 'src/Generated/**'
+      - 'src/Resource/**'
       - 'docs/ENDPOINTS.md'
       - 'scripts/generate-models.php'
       - 'scripts/generate-endpoints-digest.php'
+      - 'scripts/check-endpoint-coverage.php'
   pull_request:
     paths:
       - '.openapi/**'
       - 'src/Generated/**'
+      - 'src/Resource/**'
       - 'docs/ENDPOINTS.md'
       - 'scripts/generate-models.php'
       - 'scripts/generate-endpoints-digest.php'
+      - 'scripts/check-endpoint-coverage.php'
   schedule:
     - cron: '0 6 * * 1'  # Weekly Monday 6am UTC
 
@@ -38,3 +42,6 @@ jobs:
 
       - name: Generate models and check for drift
         run: composer generate:check
+
+      - name: Check resource endpoint coverage
+        run: composer check:endpoints
