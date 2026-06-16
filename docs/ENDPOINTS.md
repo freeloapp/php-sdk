@@ -121,6 +121,11 @@ Posts a new comment on the given task. Text is passed as `content` (HTML / plain
 - Subsequent calls are always regular comments; the description is managed separately via `/task/{id}/description`.
 - Fires notifications to the task's tracking users and a `comment_created` event.
 
+**Mentioning users:**
+Embed a mention in `content` as an HTML span:
+`<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>`
+where `{id}` is the user's id and `{mention_key}` is the visible text after `@` (the normalized `fullname` — whitespace stripped, diacritics removed). Get both from the user's `UserBasic` object (e.g. `GET /users/me`). The mentioned user is notified.
+
 **Parameters:**
 
 - `task_id` [path, required] (integer)
@@ -132,7 +137,7 @@ _Request body (required)_
 - Content-Type: `application/json`
 - Schema: `object`
 - Properties:
-    - `content` **required** (string)
+    - `content` **required** (string) — Comment body (HTML / plain text). To mention a user, embed a span: `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>` (`id` and `mention_key` come from the user's `UserBasic` object, e.g. `GET /users/me`).
     - `files` (array<FileUpload>)
 
 **Responses:**
