@@ -6,6 +6,7 @@ namespace Freelo\Sdk\Resource;
 
 use Freelo\Sdk\Exception\ApiException;
 use Freelo\Sdk\Model\TaskLabel;
+use Freelo\Sdk\Model\TaskLabelColor;
 
 /**
  * Task label resource manager
@@ -36,6 +37,28 @@ class TaskLabelResource extends AbstractResource
         return array_map(
             fn(array $item) => TaskLabel::fromArray($item),
             $data['labels'] ?? []
+        );
+    }
+
+    /**
+     * List the accepted task-label colors
+     *
+     * Returns the fixed palette of colors accepted when creating or assigning
+     * task labels. Send the `color` (hex) value back on create/add-to-task;
+     * `displayName` is display-only and is not accepted as input. Exactly one
+     * color is marked `isDefault` (applied when a label is created without one).
+     *
+     * @return TaskLabelColor[]
+     * @throws ApiException
+     */
+    public function getColors(): array
+    {
+        $response = $this->client->get('task-label-colors');
+        $data = $this->parser->parseSingle($response);
+
+        return array_map(
+            fn(array $item) => TaskLabelColor::fromArray($item),
+            $data['colors'] ?? []
         );
     }
 
