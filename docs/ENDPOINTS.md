@@ -7,7 +7,7 @@
 
 This digest exists to give LLMs and humans fast access to endpoint semantics (use cases, behavior notes, side effects) without parsing the full spec. Regenerated from `.openapi/freelo-api.yaml` on every `composer generate`.
 
-Total endpoints: **114** across 19 tag(s).
+Total endpoints: **115** across 19 tag(s).
 
 ## Table of contents
 
@@ -24,7 +24,7 @@ Total endpoints: **114** across 19 tag(s).
 - [Search](#search) — 1 endpoint
 - [States](#states) — 1 endpoint
 - [Subtasks](#subtasks) — 2 endpoints
-- [Task Labels](#task-labels) — 4 endpoints
+- [Task Labels](#task-labels) — 5 endpoints
 - [Tasklists](#tasklists) — 6 endpoints
 - [Tasks](#tasks) — 29 endpoints
 - [Time Tracking](#time-tracking) — 4 endpoints
@@ -1955,6 +1955,20 @@ _Request body (required)_
 
 ## Task Labels
 
+### `GET /task-label-colors`
+
+**List the accepted task-label colors**
+
+`operationId`: `getTaskLabelColors`
+
+Returns the fixed palette of colors accepted when creating or assigning task labels.
+
+**Responses:**
+
+- `200` — Successful response
+
+---
+
 ### `POST /task-labels`
 
 **Bulk-create task labels in the caller's workspace**
@@ -2238,15 +2252,17 @@ _Request body (required)_
 
 `operationId`: `getTasklist`
 
-Returns metadata for a single tasklist — name, budget, parent project reference, and the latest `date_edited` / `date_add` audit timestamps.
+Returns metadata for a single tasklist — name, budget, parent project reference, the default worker (`worker_id`), and the latest `date_edited` / `date_add` audit timestamps.
 
 **Use cases:**
 - Opening a tasklist detail view
 - Re-fetching metadata after an edit to confirm the state
 - Reading budget for reporting purposes
+- Reading the default worker set via `POST /tasklist/{tasklist_id}/edit` (`worker_id`)
 
 **Behavior notes:**
 - Performs both a tasklist fetch (ACL-checked) and a project fetch (ACL-checked). If the caller has no access to either, returns 404.
+- `worker_id` is `null` when no default worker is set, or when the configured default worker is no longer among the tasklist's assignable workers (project membership / tasklist ACL).
 
 **Parameters:**
 
@@ -2328,6 +2344,7 @@ Paginated global task search. Combines fulltext search (via Elasticsearch), stru
 - `finished_overdue=true` filters for tasks finished **after** their due date — a reporting lens for delivery SLAs.
 - `worker_id` filters by assignee only (not by tracking users).
 - `my_priorities=1` returns only tasks the authenticated user has added to their priorities.
+- `priority_enum` filters by task priority level — `l` (low), `m` (medium) or `h` (high); omit to return tasks of any priority.
 
 **Parameters:**
 
@@ -2348,6 +2365,7 @@ Paginated global task search. Combines fulltext search (via Elasticsearch), stru
 - `finished_date_range[date_to]` [query] (string<date>) — Filter tasks finished on or before this date
 - `worker_id` [query] (integer) — Filter by worker ID
 - `my_priorities` [query] (integer enum: 0|1) — Only tasks in the authenticated user's priorities ("my priorities"). Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default.
+- `priority_enum` [query] (string enum: l|m|h) — Filter by task priority level: `l` (low), `m` (medium) or `h` (high). Omit to return tasks of any priority.
 - `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
 - `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
