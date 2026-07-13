@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-07-13
+
+### Added
+- **`TaskLabelResource::getColors()`** — new `GET /task-label-colors` endpoint; returns the fixed palette of colors accepted when creating or assigning task labels. Each `TaskLabelColor` carries `color` (the hex value to send back on create / `add-to-task`), `displayName` (display-only, not accepted as input) and `isDefault` (the fallback color applied when a label is created without one). New `Model\TaskLabelColor`.
+
+### Changed
+- **Synced OpenAPI spec to upstream** — documented `GET /task-label-colors`; regenerated models (`Generated\Model\TaskLabelColor`, plus `TasklistDetail.workerId` from `worker_id`) and `docs/ENDPOINTS.md`.
+- **Endpoint drift check** — added `scripts/check-endpoint-coverage.php` + `composer check:endpoints` and an `.openapi/endpoint-coverage-ignore.txt` baseline, wired into `openapi-check.yml` and the weekly `update-api-spec.yml`. CI now fails when the spec exposes an operation that no hand-written resource implements (unless explicitly ignored).
+
 ## [2.1.0] - 2026-06-03
 
 ### Added
@@ -195,7 +204,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Code coverage reporting
 
-[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/freeloapp/php-sdk/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/freeloapp/php-sdk/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/freeloapp/php-sdk/compare/v1.3.0...v2.0.0
 [1.3.0]: https://github.com/freeloapp/php-sdk/compare/v1.2.0...v1.3.0
