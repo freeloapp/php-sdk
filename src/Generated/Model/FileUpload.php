@@ -10,12 +10,20 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Generated\Model;
 
 /**
+ * A file to attach to a comment / task description / work report. Provide **one** of two variants:
+ * - **By uuid** — reference a file already uploaded via `POST /file/upload` (`{ "uuid": "…" }`).
+ * - **By download_url** — give a URL that Freelo downloads the file from server-side (`{ "download_url": "…" }`).
+ *
+ * The variant is chosen by which key is present: if `uuid` is set it is used, otherwise `download_url` is downloaded. `caption` is optional in both.
+ *
  * FileUpload model.
  */
 class FileUpload
 {
     public function __construct(
-        public readonly string $downloadUrl,
+        public readonly ?string $uuid = null,
+        public readonly ?string $caption = null,
+        public readonly ?string $downloadUrl = null,
         public readonly ?string $filename = null,
         /** @var array<string, mixed> */
         public readonly array $data = [],
@@ -28,7 +36,9 @@ class FileUpload
     public static function fromArray(array $data): self
     {
         return new self(
-            downloadUrl: (string) ($data['download_url'] ?? ''),
+            uuid: isset($data['uuid']) ? (string) $data['uuid'] : null,
+            caption: isset($data['caption']) ? (string) $data['caption'] : null,
+            downloadUrl: isset($data['download_url']) ? (string) $data['download_url'] : null,
             filename: isset($data['filename']) ? (string) $data['filename'] : null,
             data: $data,
         );

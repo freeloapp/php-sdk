@@ -7,14 +7,14 @@
 
 This digest exists to give LLMs and humans fast access to endpoint semantics (use cases, behavior notes, side effects) without parsing the full spec. Regenerated from `.openapi/freelo-api.yaml` on every `composer generate`.
 
-Total endpoints: **115** across 19 tag(s).
+Total endpoints: **117** across 19 tag(s).
 
 ## Table of contents
 
-- [Comments](#comments) — 3 endpoints
+- [Comments](#comments) — 4 endpoints
 - [Custom Fields](#custom-fields) — 14 endpoints
 - [Events](#events) — 1 endpoint
-- [Files](#files) — 3 endpoints
+- [Files](#files) — 4 endpoints
 - [Invoicing](#invoicing) — 5 endpoints
 - [Notes](#notes) — 4 endpoints
 - [Notifications](#notifications) — 3 endpoints
@@ -66,6 +66,30 @@ Global comment feed across all accessible projects / tasks / files / docs / link
 
 ---
 
+### `DELETE /comment/{comment_id}`
+
+**Delete a comment**
+
+`operationId`: `deleteComment`
+
+Deletes an existing comment.
+
+**Behavior notes:**
+- ACL: only the comment's author can delete. Otherwise 404 is returned (not 403, to avoid leaking the existence of inaccessible comments).
+- **Time window:** a comment can be deleted only within **15 minutes** of being posted. After that the endpoint returns 400. (Editing a comment has no such time limit.)
+
+**Parameters:**
+
+- `comment_id` [path, required] (integer)
+
+**Responses:**
+
+- `200` — Comment deleted
+- `400` — The 15-minute deletion window has expired
+- `404` — Comment not found or not owned by the caller
+
+---
+
 ### `POST /comment/{comment_id}`
 
 **Edit an existing comment**
@@ -80,6 +104,7 @@ Overwrites the text and / or attachments of an existing comment.
 
 **Behavior notes:**
 - `files` replaces the full attachment set — pass the complete list of file UUIDs you want attached, not a delta.
+- Files can also be attached inline via a `<a data-freelo-uuid="{file_uuid}">…</a>` anchor in `content` (see `POST /task/{id}/comments`). Use one mechanism per file, never both for the same UUID.
 - ACL: only the comment's author can edit (or project owner / commander depending on role rules). Otherwise 404 `NotFoundException` is returned (not 403, to avoid leaking the existence of inaccessible comments).
 - The method used is `POST` for historical reasons, not `PUT`/`PATCH`.
 
@@ -94,8 +119,8 @@ _Request body (required)_
 - Content-Type: `application/json`
 - Schema: `object`
 - Properties:
-    - `content` **required** (string)
-    - `files` (array<FileUpload>)
+    - `content` **required** (string) — Comment body (HTML / plain text). Supports inline file anchors (`<a data-freelo-uuid="{file_uuid}">…</a>`) and user mentions — see `POST /task/{id}/comments`.
+    - `files` (array<FileUpload>) — Files to attach as plain attachments (not placed inline in the body). Replaces the full attachment set. Use one mechanism per file — do not also embed the same UUID in `content`.
 
 **Responses:**
 
@@ -109,7 +134,7 @@ _Request body (required)_
 
 `operationId`: `createComment`
 
-Posts a new comment on the given task. Text is passed as `content` (HTML / plain text); attachments are passed as `files` (referencing previously uploaded file UUIDs).
+Posts a new comment on the given task. Text is passed as `content` (HTML / plain text). A previously uploaded file (see `POST /file/upload`) can be attached in two independent ways — see **Attaching files** below.
 
 **Use cases:**
 - Logging progress or questions on a task
@@ -120,6 +145,14 @@ Posts a new comment on the given task. Text is passed as `content` (HTML / plain
 - **If the task has no comments yet, this call creates the task's description instead of a regular comment** (the `ICommentIsDescriptionFiller` auto-flips `is_description=true` on the first comment). From the second comment onward this endpoint behaves like a normal comment.
 - Subsequent calls are always regular comments; the description is managed separately via `/task/{id}/description`.
 - Fires notifications to the task's tracking users and a `comment_created` event.
+
+**Attaching files (two ways — pick one per file):**
+1. **As an attachment** — list the file in the `files` array (`{ "uuid": "…" }`). The file is attached to the comment but not placed at a specific position in the text.
+2. **Inline in the body** — embed an anchor with `data-freelo-uuid` in `content`:
+   `<a data-freelo-uuid="{file_uuid}" href="https://app.freelo.io/file/{file_uuid}">caption</a>`
+   The server extracts the UUID from `content`, attaches the file automatically (so you do **not** also add it to `files`), and keeps the anchor in the stored `content` — so a later `GET` shows the file inside the comment body. The anchor must be an `<a>` element (not a `<div>`); the text between the tags becomes the file caption.
+
+   ⚠️ Do not reference the same file UUID in both `content` and `files` — it would be attached twice.
 
 **Mentioning users:**
 Embed a mention in `content` as an HTML span:
@@ -137,8 +170,8 @@ _Request body (required)_
 - Content-Type: `application/json`
 - Schema: `object`
 - Properties:
-    - `content` **required** (string) — Comment body (HTML / plain text). To mention a user, embed a span: `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>` (`id` and `mention_key` come from the user's `UserBasic` object, e.g. `GET /users/me`).
-    - `files` (array<FileUpload>)
+    - `content` **required** (string) — Comment body (HTML / plain text). **Inline file attachment:** embed an anchor to attach an uploaded file inside the body: `<a data-freelo-uuid="{file_uuid}" href="https://app.freelo.io/file/{file_uuid}">caption</a>` The UUID is extracted server-side and the file is attached automatically (do not also list it in `files`). The anchor stays in the stored content, so the file is rendered inside the comment on read. **Mention a user:** embed a span: `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>` (`id` and `mention_key` come from the user's `UserBasic` object, e.g. `GET /users/me`).
+    - `files` (array<FileUpload>) — Files to attach as plain attachments (not placed inline in the body). Alternative to embedding an anchor in `content` — use one mechanism per file, never both for the same UUID.
 
 **Responses:**
 
@@ -654,6 +687,32 @@ _Request body (required)_
 **Responses:**
 
 - `200` — File uploaded
+
+---
+
+### `DELETE /file/{file_uuid}`
+
+**Delete a file or document by UUID**
+
+`operationId`: `deleteDocOrFileByUuid`
+
+Deletes a single **file** or **document/note** identified by its UUID. The endpoint resolves the resource type from the UUID automatically and soft-deletes it.
+
+**Use cases:**
+- Removing a file or note surfaced by the listing, by UUID alone
+
+**Behavior notes:**
+- Soft-delete only — the resource is marked deleted, not physically removed.
+- Returns 404 if no file or document matches the UUID, or the caller has no access to it.
+
+**Parameters:**
+
+- `file_uuid` [path, required] (string<uuid>)
+
+**Responses:**
+
+- `200` — File or document deleted _(schema: `SuccessResponse`)_
+- `404` — No file or document found for the given UUID
 
 ---
 
@@ -2115,7 +2174,7 @@ _Request body (required)_
 
 `operationId`: `getAllTasklists`
 
-Paginated list of tasklists visible to the caller, across all accessible projects. Can be filtered to a subset of projects via `projects_ids[]`.
+Paginated list of tasklists visible to the caller, across all accessible projects. Can be filtered to a subset of projects via `projects_ids[]` and to a subset of states via `states[]`.
 
 **Use cases:**
 - Cross-project reporting (e.g. "all tasklists touching client X")
@@ -2124,11 +2183,13 @@ Paginated list of tasklists visible to the caller, across all accessible project
 
 **Behavior notes:**
 - ACL is applied — tasklists the caller can't see are filtered out, even if `projects_ids[]` includes their project.
+- `states[]` restricts the returned tasklist states. When omitted (or containing no valid value) both `active` and `finished` are returned, preserving the original behavior.
 - Default order: `date_add asc`.
 
 **Parameters:**
 
 - `projects_ids[]` [query] (array<integer>)
+- `states[]` [query] (array<string enum: active|finished>) — Restrict to tasklists in the given states. Defaults to both when omitted.
 - `order_by` [query] (string enum: name|date_add|date_edited_at)
 - `order` [query] (string enum: asc|desc)
 - `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
@@ -2337,7 +2398,9 @@ Paginated global task search. Combines fulltext search (via Elasticsearch), stru
 - Cross-project views (e.g. "all open tasks with label blocker")
 
 **Behavior notes (non-obvious):**
-- `search_query` is a fulltext match on the task name through Elasticsearch — it prefilters the task set before other filters are applied; supplying only `search_query` without any `projects_ids[]` restricts across all visible projects.
+- `search_query` is a fulltext match on the **task name only** (via Elasticsearch) — it does **not** search task descriptions, comments or attached files. A term that appears only in a description/comment will not match here; use `POST /search` for full-content search.
+- `search_query` matches **top-level tasks only** — smart subtasks and checklist items (task-checks) are excluded from the results. Use `POST /search` with `entity_type: "subtask"` / `"taskcheck"` to reach those.
+- `search_query` prefilters the task set before other filters are applied; supplying only `search_query` without any `projects_ids[]` restricts across all visible projects.
 - `with_label` is a single-value legacy alias for `with_labels[]` — when both are sent, `with_label` is merged into the array (no preemption). `with_label` is deprecated; prefer `with_labels[]`.
 - `state_id` filters by task state — omit to get tasks in all states the caller can see (typically active + finished; depends on ACL).
 - `no_due_date=true` returns only tasks without a due date; combining with `due_date_range` is effectively contradictory and the range is ignored.
@@ -2348,11 +2411,11 @@ Paginated global task search. Combines fulltext search (via Elasticsearch), stru
 
 **Parameters:**
 
-- `search_query` [query] (string) — Fulltext search query for the task name
+- `search_query` [query] (string) — Fulltext search query matched against the **task name only** (not descriptions, comments or files) and restricted to **top-level tasks** (subtasks and checklist items are excluded). For full-content or subtask/checklist search use `POST /search`.
 - `state_id` [query] (integer) — ID of the tasks state
 - `projects_ids[]` [query] (array<integer>) — Filter tasks by project IDs. If empty, tasks from all accessible projects are returned.
 - `tasklists_ids[]` [query] (array<integer>) — Filter tasks by tasklist IDs
-- `order_by` [query] (string enum: priority|name|date_add|date_edited_at)
+- `order_by` [query] (string enum: priority|name|date_add|date_edited_at|due_date) — When `due_date`, tasks without a due date are always last; all-day tasks sort at the start of their day (00:00). Results are tie-broken by task id for stable pagination.
 - `order` [query] (string enum: asc|desc)
 - `with_labels[]` [query] (array<string>) — Filter tasks that have at least one of the specified labels (case insensitive). Can be combined with with_label.
 - `with_label` [query] (string) — Filter tasks by a single label name (case insensitive). If with_labels[] is also provided, this value is merged into that array.
@@ -2396,7 +2459,7 @@ Returns all **active** tasks in the specified tasklist, ordered by the requested
 
 - `project_id` [path, required] (integer)
 - `tasklist_id` [path, required] (integer)
-- `order_by` [query] (string enum: priority|name|date_add|date_edited_at)
+- `order_by` [query] (string enum: priority|name|date_add|date_edited_at|due_date) — When `due_date`, tasks without a due date are always last; all-day tasks sort at the start of their day (00:00).
 - `order` [query] (string enum: asc|desc)
 
 **Responses:**
@@ -2575,10 +2638,13 @@ Returns full task detail — metadata, labels, worker, tracking users, due dates
 - Spent minutes (`minutes`) and `cost.amount` are only included when the caller is **not** a project commander (commanders see account-wide billing elsewhere).
 - Labels include labels inherited from a multi-project parent.
 - `copied_from_task` references the origin task if the task was created from a template or as a multi-project copy.
+- Inline `comments` can be sorted and limited via `comments_order` / `comments_limit`. Comments are first sorted by `date_add` in the requested direction, then the first `comments_limit` are kept — so `comments_order=desc&comments_limit=10` returns the 10 newest comments. When both params are omitted the full comment list is returned in `date_add asc` order (unchanged behavior).
 
 **Parameters:**
 
 - `task_id` [path, required] (integer)
+- `comments_order` [query] (string enum: asc|desc) — Sort direction for inline comments by date_add. Defaults to asc (oldest first).
+- `comments_limit` [query] (integer) — Max number of inline comments to return after ordering. Omit for all comments; 0 returns none.
 
 **Responses:**
 
@@ -2810,7 +2876,7 @@ Promotes a single-project task into a multi-project task (UVVP) by creating a **
 
 **Behavior notes:**
 - Target project is **derived from the `tasklist_id`** — you pass the tasklist, not the project. The target tasklist must belong to a project the caller has access to, otherwise 403.
-- Subsequent content (comments, worker) operations on the parent and child task may diverge depending on the multi-project architecture (see project docs `docs/feature/multi-project-tasks.md`).
+- The parent and child are separate task entities: comments, workers and other content are not automatically mirrored between them, so subsequent operations on one do not necessarily affect the other.
 
 **Parameters:**
 
