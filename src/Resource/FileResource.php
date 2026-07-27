@@ -59,4 +59,20 @@ class FileResource extends AbstractResource
 
         return $data['uuid'] ?? '';
     }
+
+    /**
+     * Delete a file or document/note by UUID
+     *
+     * The resource type is resolved from the UUID server-side and soft-deleted.
+     * Returns 404 when no file or document matches the UUID, or the caller has
+     * no access to it.
+     *
+     * @throws ApiException
+     */
+    public function delete(string $fileUuid): bool
+    {
+        $response = $this->client->delete("file/{$fileUuid}");
+
+        return $this->parser->parseBoolean($response);
+    }
 }
