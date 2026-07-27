@@ -57,4 +57,19 @@ class CommentResource extends AbstractResource
 
         return Comment::fromArray($responseData);
     }
+
+    /**
+     * Delete a comment
+     *
+     * Only the comment's author can delete, and only within 15 minutes of
+     * posting it — later calls fail with 400. Editing has no such time limit.
+     *
+     * @throws ApiException
+     */
+    public function delete(int $commentId): bool
+    {
+        $response = $this->client->delete("comment/{$commentId}");
+
+        return $this->parser->parseBoolean($response);
+    }
 }

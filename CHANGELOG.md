@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`CommentResource::delete()`** — new `DELETE /comment/{comment_id}` endpoint. Author-only, and only within **15 minutes** of posting (later calls return 400); editing keeps having no time limit.
+- **`FileResource::delete()`** — new `DELETE /file/{file_uuid}` endpoint. Soft-deletes a file *or* a document/note — the resource type is resolved from the UUID server-side; 404 when nothing matches or the caller has no access.
+
+### Changed
+- **Synced OpenAPI spec to upstream** — new endpoints above plus: `states[]` filter on `GET /all-tasklists`; `due_date` added to `order_by` on `GET /tasklist/{id}/tasks` and `GET /all-tasks` (tasks without a due date sort last, all-day tasks at 00:00); `comments_order` / `comments_limit` on `GET /task/{id}` to sort and cap the inline comment list; `search_query` on `GET /all-tasks` documented as task-name-only and top-level-tasks-only (use `POST /search` for descriptions/comments/subtasks); `FileUpload` documented as a `oneOf` of by-`uuid` and by-`download_url` variants, both with an optional `caption` (new `Generated\Model\FileUploadByUuid` / `FileUploadByUrl`); comment endpoints document inline file attachment via `<a data-freelo-uuid="…">` anchors in `content`. Generated models and `docs/ENDPOINTS.md` regenerated.
+
 ## [2.2.0] - 2026-07-13
 
 ### Added
