@@ -25,6 +25,7 @@ class TaskCreate
         public readonly array $trackingUsersIds = [],
         public readonly ?bool $turnOffAuthorsTracking = null,
         public readonly array $subtasks = [],
+        public readonly ?bool $notifyAuthor = null,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -50,6 +51,7 @@ class TaskCreate
             turnOffAuthorsTracking: isset($data['turn_off_authors_tracking']) ? (bool) $data['turn_off_authors_tracking'] : null,
             subtasks: isset($data['subtasks']) && is_array($data['subtasks'])
                 ? $data['subtasks'] : [],
+            notifyAuthor: isset($data['notify_author']) ? (bool) $data['notify_author'] : null,
             data: $data,
         );
     }

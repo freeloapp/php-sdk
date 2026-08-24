@@ -23,6 +23,7 @@ class SubtaskCreate
         public readonly array $comment = [],
         public readonly array $labels = [],
         public readonly array $trackingUsersIds = [],
+        public readonly ?bool $notifyAuthor = null,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -45,6 +46,7 @@ class SubtaskCreate
                 ? $data['labels'] : [],
             trackingUsersIds: isset($data['tracking_users_ids']) && is_array($data['tracking_users_ids'])
                 ? $data['tracking_users_ids'] : [],
+            notifyAuthor: isset($data['notify_author']) ? (bool) $data['notify_author'] : null,
             data: $data,
         );
     }

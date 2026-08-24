@@ -7,7 +7,7 @@
 
 This digest exists to give LLMs and humans fast access to endpoint semantics (use cases, behavior notes, side effects) without parsing the full spec. Regenerated from `.openapi/freelo-api.yaml` on every `composer generate`.
 
-Total endpoints: **117** across 19 tag(s).
+Total endpoints: **118** across 19 tag(s).
 
 ## Table of contents
 
@@ -24,7 +24,7 @@ Total endpoints: **117** across 19 tag(s).
 - [Search](#search) — 1 endpoint
 - [States](#states) — 1 endpoint
 - [Subtasks](#subtasks) — 2 endpoints
-- [Task Labels](#task-labels) — 5 endpoints
+- [Task Labels](#task-labels) — 6 endpoints
 - [Tasklists](#tasklists) — 6 endpoints
 - [Tasks](#tasks) — 29 endpoints
 - [Time Tracking](#time-tracking) — 4 endpoints
@@ -121,6 +121,7 @@ _Request body (required)_
 - Properties:
     - `content` **required** (string) — Comment body (HTML / plain text). Supports inline file anchors (`<a data-freelo-uuid="{file_uuid}">…</a>`) and user mentions — see `POST /task/{id}/comments`.
     - `files` (array<FileUpload>) — Files to attach as plain attachments (not placed inline in the body). Replaces the full attachment set. Use one mechanism per file — do not also embed the same UUID in `content`.
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
 
@@ -172,6 +173,7 @@ _Request body (required)_
 - Properties:
     - `content` **required** (string) — Comment body (HTML / plain text). **Inline file attachment:** embed an anchor to attach an uploaded file inside the body: `<a data-freelo-uuid="{file_uuid}" href="https://app.freelo.io/file/{file_uuid}">caption</a>` The UUID is extracted server-side and the file is attached automatically (do not also list it in `files`). The anchor stays in the stored content, so the file is rendered inside the comment on read. **Mention a user:** embed a span: `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>` (`id` and `mention_key` come from the user's `UserBasic` object, e.g. `GET /users/me`).
     - `files` (array<FileUpload>) — Files to attach as plain attachments (not placed inline in the body). Alternative to embedding an anchor in `content` — use one mechanism per file, never both for the same UUID.
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
 
@@ -893,10 +895,11 @@ Soft-deletes the note. It is hidden from listings but retained in the database f
 
 **Behavior notes:**
 - Response returns the (now-deleted) note's state for confirmation. This is a quirk — most delete endpoints return a SuccessResponse; this one returns the Note.
+- Accepts the numeric id **or** the note `uuid` (as returned by `GET /all-docs-and-files`).
 
 **Parameters:**
 
-- `note_id` [path, required] (integer)
+- `note_id` [path, required] — Numeric note ID (`documents.id`) or note UUID (`documents.uuid`) — both are accepted in the same position. `GET /all-docs-and-files` returns only the UUID for notes.
 
 **Responses:**
 
@@ -914,10 +917,11 @@ Fetches a single note by ID. As with create, notes are backed by the Document en
 
 **Behavior notes:**
 - ACL-checked via the note's project.
+- Accepts the numeric id **or** the note `uuid` (as returned by `GET /all-docs-and-files`).
 
 **Parameters:**
 
-- `note_id` [path, required] (integer)
+- `note_id` [path, required] — Numeric note ID (`documents.id`) or note UUID (`documents.uuid`) — both are accepted in the same position. `GET /all-docs-and-files` returns only the UUID for notes.
 
 **Responses:**
 
@@ -935,10 +939,11 @@ Updates an existing note's title (`name`) and / or body (`content`).
 
 **Behavior notes:**
 - Overwrites content — there is no history / diff tracking exposed via the API.
+- Accepts the numeric id **or** the note `uuid` (as returned by `GET /all-docs-and-files`).
 
 **Parameters:**
 
-- `note_id` [path, required] (integer)
+- `note_id` [path, required] — Numeric note ID (`documents.id`) or note UUID (`documents.uuid`) — both are accepted in the same position. `GET /all-docs-and-files` returns only the UUID for notes.
 
 **Request body:**
 
@@ -949,6 +954,7 @@ _Request body (required)_
 - Properties:
     - `name` **required** (string)
     - `content` (string)
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
 
@@ -2041,7 +2047,7 @@ Creates task-label definitions (not assignments). Use this before `/task-labels/
 - Importing labels from another system
 
 **Behavior notes (non-obvious):**
-- This is a **fetch-or-create** — labels with an existing matching name are **re-used**, not duplicated. The endpoint only creates those that don't already exist.
+- This is a **fetch-or-create** — a label whose **name AND color** already exist among the caller's own labels is **re-used**, not duplicated (matching is case-sensitive). The endpoint only creates those that don't already exist. This holds even if the client sends a fresh `uuid` each call.
 - The label is scoped to the caller's account and available across their accessible projects via the "task-labels-used" relation.
 - If the caller has **no projects at all**, the "used" relation is silently skipped (no `NoProjectsException` bubbles up to the caller).
 - The response does not explicitly report which labels were new vs. reused — query `/project-labels/find-available` or the task detail to verify.
@@ -2079,6 +2085,7 @@ Assigns one or more task labels to the given task. Labels can be addressed by UU
 
 **Behavior notes (non-obvious):**
 - Name+color matching is **case-sensitive**. `"bug"` and `"Bug"` are different labels.
+- Reuse matches against **all** of the caller's labels — including ones the caller owns but has never used on a task — so name mode does not mint a duplicate of an existing unused label.
 - If you pass a UUID that doesn't match any existing label, `CannotCreateWithProvidedUuidException` is thrown.
 - When labels are actually added (vs. already present), a `task_labels_change` event is emitted (→ webhooks, audit log).
 - Calling with an empty array short-circuits — no event, no ACL check, 200 response.
@@ -2117,11 +2124,50 @@ Returns all task labels usable by the authenticated user — labels attached to 
 
 **Behavior notes:**
 - Sorted by `name` ascending.
+- Pass the optional `project_id` query parameter to restrict the result to labels used in that single project. The project must be one the caller owns or is invited to; otherwise `{ "labels": [] }` is returned.
 - If the caller has no accessible projects, returns `{ "labels": [] }`.
+
+**Parameters:**
+
+- `project_id` [query] (integer) — Restrict results to labels used in this project (must be accessible to the caller).
 
 **Responses:**
 
 - `200` — Successful response
+
+---
+
+### `POST /task-labels/merge`
+
+**Merge task labels into a single target label**
+
+`operationId`: `mergeTaskLabels`
+
+Merges one or more source labels into a target label in a single server-side operation. Every task that carried a source label ends up carrying the target label instead; the source labels are detached from those tasks.
+
+Use this instead of iterating over tasks and re-adding a label client-side — one call performs the whole merge-and-replace across all the caller's accessible tasks.
+
+**Ownership & scope:**
+- Both the target (`to_uuid`) and every source label (`from_uuids`) must be owned by the caller; otherwise the endpoint responds `404` (labels the caller does not own are treated as non-existent).
+- The replacement is applied only to tasks in projects where the caller is a commander.
+
+**Behavior notes (non-obvious):**
+- The target label's name and color are taken from the existing `to_uuid` label — the client does not send them.
+- Source labels are detached from tasks but their definitions are not deleted by this call.
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `from_uuids` **required** (array<string<uuid>>) — UUIDs of the labels to merge away (must be owned by the caller).
+    - `to_uuid` **required** (string<uuid>) — UUID of the label the source labels are merged into (must be owned by the caller).
+
+**Responses:**
+
+- `200` — Successful response _(schema: `SuccessResponse`)_
 
 ---
 
@@ -2660,12 +2706,13 @@ Returns full task detail — metadata, labels, worker, tracking users, due dates
 
 Partially updates a task. Only the fields listed below are editable through this endpoint — any other key in the body is **silently ignored** (the facade uses `array_intersect_key` against a fixed whitelist).
 
-**Editable fields:** `name`, `worker`, `due_date`, `due_date_end`, `labels`, `priority_enum`, `tracking_users_ids`, `add_tracking_users_ids`, `remove_tracking_users_ids`.
+**Editable fields:** `name`, `description`, `worker`, `due_date`, `due_date_end`, `labels`, `priority_enum`, `tracking_users_ids`, `add_tracking_users_ids`, `remove_tracking_users_ids`.
 
 **Use cases:**
 - Reassigning a task
 - Changing priority / due date
 - Renaming or relabeling from an integration
+- Rewriting the task body without a second call to `POST /task/{task_id}/description`
 - Adjusting tracking users (add / remove / replace)
 
 **Behavior notes (non-obvious):**
@@ -2676,6 +2723,7 @@ Partially updates a task. Only the fields listed below are editable through this
   - `remove_tracking_users_ids` **removes** the given IDs from the current set.
   Mixing `tracking_users_ids` (replace) with add/remove in one call is accepted but the final state is determined by the facade's order of operations — keep it to one shape per call to be deterministic.
 - **Labels must reference existing labels or be fully-formed new label DTOs** — the behavior matches the task-labels add-to-task semantics.
+- **`description` overwrites the whole description** (upsert, no append, no history) — identical semantics to `POST /task/{task_id}/description`. Omitting the key leaves the current description untouched; the task edit and the description update run in a single transaction.
 - The endpoint responds with the task's full detail (same shape as `GET /task/{id}`).
 - Note the HTTP method: `POST` is used for edits here (historical REST shape), not `PUT`/`PATCH`.
 
@@ -2696,9 +2744,11 @@ _Request body (required)_
     - `due_date_end` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.
     - `worker` (integer)
     - `priority_enum` (string enum: l|m|h) — Allowed options are l, m, h. Set to null to remove priority.
+    - `labels` (array<TaskLabelAddInput>)
     - `tracking_users_ids` (array<integer>) — Set (replace) all tracking users. Pass an empty array to remove all.
     - `add_tracking_users_ids` (array<integer>) — Add tracking users by user ID (merged with existing).
     - `remove_tracking_users_ids` (array<integer>) — Remove tracking users by user ID.
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
 
@@ -2725,6 +2775,15 @@ Moves a task from the **finished** state back to **active**. Use to reverse a `f
 **Parameters:**
 
 - `task_id` [path, required] (integer)
+
+**Request body:**
+
+_Request body_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
 
@@ -2814,6 +2873,15 @@ Closes a task — moves it to the **finished** state.
 **Parameters:**
 
 - `task_id` [path, required] (integer)
+
+**Request body:**
+
+_Request body_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
 
@@ -3168,6 +3236,7 @@ _Request body (required)_
 - Properties:
     - `name` (string)
     - `worker` (integer) — User id of the worker to assign. Pass `null` to clear.
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
 
@@ -3204,6 +3273,15 @@ Moves a simple checklist item to the **finished** state. A smart taskcheck id re
 **Parameters:**
 
 - `taskcheck_id` [path, required] (integer) — ID of the taskcheck (`tasks_checks.id`)
+
+**Request body:**
+
+_Request body_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
 

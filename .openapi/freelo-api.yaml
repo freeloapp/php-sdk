@@ -1900,12 +1900,13 @@ paths:
       description: |
         Partially updates a task. Only the fields listed below are editable through this endpoint — any other key in the body is **silently ignored** (the facade uses `array_intersect_key` against a fixed whitelist).
 
-        **Editable fields:** `name`, `worker`, `due_date`, `due_date_end`, `labels`, `priority_enum`, `tracking_users_ids`, `add_tracking_users_ids`, `remove_tracking_users_ids`.
+        **Editable fields:** `name`, `description`, `worker`, `due_date`, `due_date_end`, `labels`, `priority_enum`, `tracking_users_ids`, `add_tracking_users_ids`, `remove_tracking_users_ids`.
 
         **Use cases:**
         - Reassigning a task
         - Changing priority / due date
         - Renaming or relabeling from an integration
+        - Rewriting the task body without a second call to `POST /task/{task_id}/description`
         - Adjusting tracking users (add / remove / replace)
 
         **Behavior notes (non-obvious):**
@@ -1916,6 +1917,7 @@ paths:
           - `remove_tracking_users_ids` **removes** the given IDs from the current set.
           Mixing `tracking_users_ids` (replace) with add/remove in one call is accepted but the final state is determined by the facade's order of operations — keep it to one shape per call to be deterministic.
         - **Labels must reference existing labels or be fully-formed new label DTOs** — the behavior matches the task-labels add-to-task semantics.
+        - **`description` overwrites the whole description** (upsert, no append, no history) — identical semantics to `POST /task/{task_id}/description`. Omitting the key leaves the current description untouched; the task edit and the description update run in a single transaction.
         - The endpoint responds with the task's full detail (same shape as `GET /task/{id}`).
         - Note the HTTP method: `POST` is used for edits here (historical REST shape), not `PUT`/`PATCH`.
       operationId: editTask
@@ -1964,6 +1966,10 @@ paths:
                   enum: [l, m, h]
                   nullable: true
                   description: Allowed options are l, m, h. Set to null to remove priority.
+                labels:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TaskLabelAddInput'
                 tracking_users_ids:
                   type: array
                   nullable: true
@@ -1980,6 +1986,14 @@ paths:
                   description: Remove tracking users by user ID.
                   items:
                     type: integer
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, the authenticated caller (the action author) is kept in the
+                    notification recipients even though they triggered the action. Useful for
+                    automations acting under your own token. Only takes effect if you are
+                    otherwise a subscriber/worker/tracking user of the target.
       responses:
         '200':
           description: Task updated
@@ -2031,6 +2045,21 @@ paths:
       operationId: activateTask
       parameters:
         - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, the authenticated caller (the action author) is kept in the
+                    notification recipients even though they triggered the action. Useful for
+                    automations acting under your own token. Only takes effect if you are
+                    otherwise a subscriber/worker/tracking user of the target.
       responses:
         '200':
           description: Successful response
@@ -2058,6 +2087,21 @@ paths:
       operationId: finishTask
       parameters:
         - $ref: '#/components/parameters/TaskIdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, the authenticated caller (the action author) is kept in the
+                    notification recipients even though they triggered the action. Useful for
+                    automations acting under your own token. Only takes effect if you are
+                    otherwise a subscriber/worker/tracking user of the target.
       responses:
         '200':
           description: Successful response
@@ -2089,6 +2133,14 @@ paths:
                   type: integer
                   nullable: true
                   description: User id of the worker to assign. Pass `null` to clear.
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, the authenticated caller (the action author) is kept in the
+                    notification recipients even though they triggered the action. Useful for
+                    automations acting under your own token. Only takes effect if you are
+                    otherwise a subscriber/worker/tracking user of the target.
       responses:
         '200':
           description: Successful response
@@ -2123,6 +2175,21 @@ paths:
       operationId: finishTaskcheck
       parameters:
         - $ref: '#/components/parameters/TaskcheckIdParam'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, the authenticated caller (the action author) is kept in the
+                    notification recipients even though they triggered the action. Useful for
+                    automations acting under your own token. Only takes effect if you are
+                    otherwise a subscriber/worker/tracking user of the target.
       responses:
         '200':
           description: Successful response
@@ -2780,8 +2847,16 @@ paths:
 
         **Behavior notes:**
         - Sorted by `name` ascending.
+        - Pass the optional `project_id` query parameter to restrict the result to labels used in that single project. The project must be one the caller owns or is invited to; otherwise `{ "labels": [] }` is returned.
         - If the caller has no accessible projects, returns `{ "labels": [] }`.
       operationId: findAvailableTaskLabels
+      parameters:
+        - name: project_id
+          in: query
+          required: false
+          description: Restrict results to labels used in this project (must be accessible to the caller).
+          schema:
+            type: integer
       responses:
         '200':
           description: Successful response
@@ -2828,7 +2903,7 @@ paths:
         - Importing labels from another system
 
         **Behavior notes (non-obvious):**
-        - This is a **fetch-or-create** — labels with an existing matching name are **re-used**, not duplicated. The endpoint only creates those that don't already exist.
+        - This is a **fetch-or-create** — a label whose **name AND color** already exist among the caller's own labels is **re-used**, not duplicated (matching is case-sensitive). The endpoint only creates those that don't already exist. This holds even if the client sends a fresh `uuid` each call.
         - The label is scoped to the caller's account and available across their accessible projects via the "task-labels-used" relation.
         - If the caller has **no projects at all**, the "used" relation is silently skipped (no `NoProjectsException` bubbles up to the caller).
         - The response does not explicitly report which labels were new vs. reused — query `/project-labels/find-available` or the task detail to verify.
@@ -2853,6 +2928,52 @@ paths:
         '200':
           description: Labels created
 
+  /task-labels/merge:
+    post:
+      tags:
+        - Task Labels
+      summary: Merge task labels into a single target label
+      description: |
+        Merges one or more source labels into a target label in a single server-side operation. Every task that carried a source label ends up carrying the target label instead; the source labels are detached from those tasks.
+
+        Use this instead of iterating over tasks and re-adding a label client-side — one call performs the whole merge-and-replace across all the caller's accessible tasks.
+
+        **Ownership & scope:**
+        - Both the target (`to_uuid`) and every source label (`from_uuids`) must be owned by the caller; otherwise the endpoint responds `404` (labels the caller does not own are treated as non-existent).
+        - The replacement is applied only to tasks in projects where the caller is a commander.
+
+        **Behavior notes (non-obvious):**
+        - The target label's name and color are taken from the existing `to_uuid` label — the client does not send them.
+        - Source labels are detached from tasks but their definitions are not deleted by this call.
+      operationId: mergeTaskLabels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - from_uuids
+                - to_uuid
+              properties:
+                from_uuids:
+                  type: array
+                  description: UUIDs of the labels to merge away (must be owned by the caller).
+                  items:
+                    type: string
+                    format: uuid
+                to_uuid:
+                  type: string
+                  format: uuid
+                  description: UUID of the label the source labels are merged into (must be owned by the caller).
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
   /task-labels/add-to-task/{task_id}:
     post:
       tags:
@@ -2871,6 +2992,7 @@ paths:
 
         **Behavior notes (non-obvious):**
         - Name+color matching is **case-sensitive**. `"bug"` and `"Bug"` are different labels.
+        - Reuse matches against **all** of the caller's labels — including ones the caller owns but has never used on a task — so name mode does not mint a duplicate of an existing unused label.
         - If you pass a UUID that doesn't match any existing label, `CannotCreateWithProvidedUuidException` is thrown.
         - When labels are actually added (vs. already present), a `task_labels_change` event is emitted (→ webhooks, audit log).
         - Calling with an empty array short-circuits — no event, no ACL check, 200 response.
@@ -3005,6 +3127,14 @@ paths:
                     Files to attach as plain attachments (not placed inline in the body). Alternative to embedding an anchor in `content` — use one mechanism per file, never both for the same UUID.
                   items:
                     $ref: '#/components/schemas/FileUpload'
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, the authenticated caller (the action author) is kept in the
+                    notification recipients even though they triggered the action. Useful for
+                    automations acting under your own token. Only takes effect if you are
+                    otherwise a subscriber/worker/tracking user of the target.
       responses:
         '200':
           description: Comment created
@@ -3056,6 +3186,14 @@ paths:
                     Files to attach as plain attachments (not placed inline in the body). Replaces the full attachment set. Use one mechanism per file — do not also embed the same UUID in `content`.
                   items:
                     $ref: '#/components/schemas/FileUpload'
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, the authenticated caller (the action author) is kept in the
+                    notification recipients even though they triggered the action. Useful for
+                    automations acting under your own token. Only takes effect if you are
+                    otherwise a subscriber/worker/tracking user of the target.
       responses:
         '200':
           description: Comment updated
@@ -5082,13 +5220,10 @@ paths:
 
         **Behavior notes:**
         - ACL-checked via the note's project.
+        - Accepts the numeric id **or** the note `uuid` (as returned by `GET /all-docs-and-files`).
       operationId: getNote
       parameters:
-        - name: note_id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/NoteIdParam'
       responses:
         '200':
           description: Successful response
@@ -5105,13 +5240,10 @@ paths:
 
         **Behavior notes:**
         - Overwrites content — there is no history / diff tracking exposed via the API.
+        - Accepts the numeric id **or** the note `uuid` (as returned by `GET /all-docs-and-files`).
       operationId: editNote
       parameters:
-        - name: note_id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/NoteIdParam'
       requestBody:
         required: true
         content:
@@ -5125,6 +5257,14 @@ paths:
                   type: string
                 content:
                   type: string
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, the authenticated caller (the action author) is kept in the
+                    notification recipients even though they triggered the action. Useful for
+                    automations acting under your own token. Only takes effect if you are
+                    otherwise a subscriber/worker/tracking user of the target.
       responses:
         '200':
           description: Note updated
@@ -5141,13 +5281,10 @@ paths:
 
         **Behavior notes:**
         - Response returns the (now-deleted) note's state for confirmation. This is a quirk — most delete endpoints return a SuccessResponse; this one returns the Note.
+        - Accepts the numeric id **or** the note `uuid` (as returned by `GET /all-docs-and-files`).
       operationId: deleteNote
       parameters:
-        - name: note_id
-          in: path
-          required: true
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/NoteIdParam'
       responses:
         '200':
           description: Note deleted
@@ -5395,6 +5532,17 @@ components:
       description: ID of the taskcheck (`tasks_checks.id`)
       schema:
         type: integer
+
+    NoteIdParam:
+      name: note_id
+      in: path
+      required: true
+      description: 'Numeric note ID (`documents.id`) or note UUID (`documents.uuid`) — both are accepted in the same position. `GET /all-docs-and-files` returns only the UUID for notes.'
+      schema:
+        oneOf:
+          - type: integer
+          - type: string
+            format: uuid
 
   schemas:
     SuccessResponse:
@@ -6025,6 +6173,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SubtaskCreate'
+        notify_author:
+          type: boolean
+          default: false
+          description: >-
+            When true, the authenticated caller (the action author) is kept in the
+            notification recipients even though they triggered the action. Useful for
+            automations acting under your own token. Only takes effect if you are
+            otherwise a subscriber/worker/tracking user of the target.
 
     TaskCreated:
       type: object
@@ -6188,6 +6344,14 @@ components:
           type: array
           items:
             type: integer
+        notify_author:
+          type: boolean
+          default: false
+          description: >-
+            When true, the authenticated caller (the action author) is kept in the
+            notification recipients even though they triggered the action. Useful for
+            automations acting under your own token. Only takes effect if you are
+            otherwise a subscriber/worker/tracking user of the target.
 
     Subtask:
       type: object
@@ -6936,6 +7100,9 @@ components:
       properties:
         id:
           type: integer
+        uuid:
+          type: string
+          format: uuid
         name:
           type: string
         date_add:
