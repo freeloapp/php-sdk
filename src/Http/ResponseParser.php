@@ -156,6 +156,10 @@ class ResponseParser
                 $count = count($rawItems);
             }
 
+            // The count comes off the wire, so normalize it to the non-negative
+            // range PaginatedResult's Countable contract requires.
+            $count = max(0, (int) $count);
+
             return [
                 'data' => is_array($rawItems) ? $rawItems : [],
                 'pagination' => [
