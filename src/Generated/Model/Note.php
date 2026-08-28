@@ -16,6 +16,7 @@ class Note
 {
     public function __construct(
         public readonly ?int $id = null,
+        public readonly ?string $uuid = null,
         public readonly ?string $name = null,
         public readonly ?\DateTimeImmutable $dateAdd = null,
         public readonly ?\DateTimeImmutable $dateEditedAt = null,
@@ -37,6 +38,7 @@ class Note
     {
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
+            uuid: isset($data['uuid']) ? (string) $data['uuid'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
             dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
             dateEditedAt: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
