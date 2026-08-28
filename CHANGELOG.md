@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-08-28
+
 ### Added
 - **`CommentResource::delete()`** — new `DELETE /comment/{comment_id}` endpoint. Author-only, and only within **15 minutes** of posting (later calls return 400); editing keeps having no time limit.
 - **`FileResource::delete()`** — new `DELETE /file/{file_uuid}` endpoint. Soft-deletes a file *or* a document/note — the resource type is resolved from the UUID server-side; 404 when nothing matches or the caller has no access.
@@ -212,7 +214,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Code coverage reporting
 
-[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/freeloapp/php-sdk/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/freeloapp/php-sdk/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/freeloapp/php-sdk/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/freeloapp/php-sdk/compare/v1.3.0...v2.0.0
