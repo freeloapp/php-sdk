@@ -71,6 +71,23 @@ class TaskLabelResourceTest extends TestCase
         $this->assertTrue($result);
     }
 
+    public function testMerge(): void
+    {
+        $response = $this->createSuccessResponse('', 200);
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with('task-labels/merge', [
+                'from_uuids' => ['uuid-1', 'uuid-2'],
+                'to_uuid' => 'uuid-3',
+            ])
+            ->willReturn($response);
+
+        $result = $this->resource->merge(['uuid-1', 'uuid-2'], 'uuid-3');
+
+        $this->assertTrue($result);
+    }
+
     public function testAddToTask(): void
     {
         $labels = [
