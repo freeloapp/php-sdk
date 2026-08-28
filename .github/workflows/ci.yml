@@ -68,6 +68,12 @@ jobs:
       - name: Run PHPCS
         run: composer phpcs
 
+      # composer.lock is gitignored, so every run resolves dependencies afresh
+      # and nothing pins away a vulnerable-but-in-range version. This is the
+      # only thing that notices when one gets pulled in.
+      - name: Audit dependencies
+        run: composer check:security
+
   coverage:
     name: Code Coverage
     runs-on: ubuntu-latest

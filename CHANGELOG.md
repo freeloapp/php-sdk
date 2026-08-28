@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Dependency audit in CI** — new `composer check:security` (`composer audit --abandoned=report`), wired into the `Code Quality` job. `composer.lock` is gitignored, so every run resolves dependencies afresh and nothing pins a vulnerable version away; this step fails the build when an installed package is covered by a security advisory.
 - **PHPStan 1.12 → 2.x** (`phpstan/phpstan: ^2.0`) — dev-only, no runtime impact. The stricter 2.x inference caught one real contract violation: `PaginatedResult::count()` is a `Countable` implementation, so it must return `int<0, max>`, but it returned the raw `count` field from the API response. `ResponseParser` now clamps that field to the non-negative range as it comes off the wire, and the constructor documents the narrowed type. Analysis stays at level 8 and passes clean.
 
 ### Fixed
