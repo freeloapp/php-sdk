@@ -76,6 +76,32 @@ class TaskLabelResource extends AbstractResource
     }
 
     /**
+     * Merge task labels into a single target label
+     *
+     * Every task carrying one of the source labels ends up carrying the target
+     * label instead; the source labels are detached from those tasks (their
+     * definitions are not deleted). The target label's name and color are taken
+     * from the existing target label — they are not sent by the client.
+     *
+     * Both the target and every source label must be owned by the caller,
+     * otherwise the API responds 404. The replacement is applied only to tasks
+     * in projects where the caller is a commander.
+     *
+     * @param string[] $fromUuids UUIDs of the labels to merge away
+     * @param string $toUuid UUID of the label the source labels are merged into
+     * @throws ApiException
+     */
+    public function merge(array $fromUuids, string $toUuid): bool
+    {
+        $response = $this->client->post('task-labels/merge', [
+            'from_uuids' => array_values($fromUuids),
+            'to_uuid' => $toUuid,
+        ]);
+
+        return $this->parser->parseBoolean($response);
+    }
+
+    /**
      * Add labels to a task
      *
      * Each label supports two input modes:
