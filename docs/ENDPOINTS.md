@@ -7,7 +7,7 @@
 
 This digest exists to give LLMs and humans fast access to endpoint semantics (use cases, behavior notes, side effects) without parsing the full spec. Regenerated from `.openapi/freelo-api.yaml` on every `composer generate`.
 
-Total endpoints: **118** across 19 tag(s).
+Total endpoints: **127** across 19 tag(s).
 
 ## Table of contents
 
@@ -20,13 +20,13 @@ Total endpoints: **118** across 19 tag(s).
 - [Notifications](#notifications) — 3 endpoints
 - [Pinned Items](#pinned-items) — 3 endpoints
 - [Project Labels](#project-labels) — 5 endpoints
-- [Projects](#projects) — 15 endpoints
+- [Projects](#projects) — 19 endpoints
 - [Search](#search) — 1 endpoint
 - [States](#states) — 1 endpoint
 - [Subtasks](#subtasks) — 2 endpoints
 - [Task Labels](#task-labels) — 6 endpoints
-- [Tasklists](#tasklists) — 6 endpoints
-- [Tasks](#tasks) — 29 endpoints
+- [Tasklists](#tasklists) — 9 endpoints
+- [Tasks](#tasks) — 31 endpoints
 - [Time Tracking](#time-tracking) — 4 endpoints
 - [Users](#users) — 7 endpoints
 - [Work Reports](#work-reports) — 4 endpoints
@@ -1543,6 +1543,43 @@ Returns full detail of a single project — metadata, tasklists (filtered by cal
 
 ---
 
+### `PATCH /project/{project_id}`
+
+**Update project**
+
+`operationId`: `updateProject`
+
+Partially updates a project's name and/or deadline. Only fields present in the body are
+changed; an omitted field is left unchanged; `due_date: null` clears the deadline.
+Any other field in the body is ignored.
+
+Name and deadline are the only editable fields — project owner and currency cannot be
+changed via the API (use the Freelo app). Only the project owner or a project commander
+may edit; for everyone else the project is indistinguishable from a non-existent one
+and the response is `404`.
+
+**Parameters:**
+
+- `project_id` [path, required] (integer)
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `name` (string)
+    - `due_date` (string<date>) — Project deadline as a calendar date (`YYYY-MM-DD`). The project deadline has no time-of-day component.
+
+**Responses:**
+
+- `200` — Project updated _(schema: `ProjectMutationResult`)_
+- `400` — Malformed `due_date` or invalid `name`
+- `404` — Project does not exist, or the caller is neither its owner nor a commander
+
+---
+
 ### `POST /project/{project_id}/activate`
 
 **Activate (unarchive / undelete) project**
@@ -1595,6 +1632,81 @@ Moves an active project into the **archived** state (state_id=2). Archived proje
 **Responses:**
 
 - `200` — Successful response _(schema: `SuccessResponse`)_
+
+---
+
+### `GET /project/{project_id}/budget`
+
+**Get project budget state**
+
+`operationId`: `getProjectBudget`
+
+Returns the current budget state for a project: the configured settings plus consumption
+and remaining values for both money and time.
+
+Only the project owner and project commanders may read the budget.
+
+**Parameters:**
+
+- `project_id` [path, required] (integer)
+
+**Responses:**
+
+- `200` — Current budget state _(schema: `ProjectBudgetState`)_
+
+---
+
+### `POST /project/{project_id}/budget`
+
+**Set or change project budget**
+
+`operationId`: `updateProjectBudget`
+
+Sets or changes the project budget (amount, time budget, recurrence and reset day/interval).
+
+To **cancel** the budget, send `budget: null` and `minutes_budget: 0` (with `is_recurrent: false`) — it resets to empty/zero.
+
+Only the project owner and project commanders may change the budget.
+
+**Parameters:**
+
+- `project_id` [path, required] (integer)
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `ProjectBudgetSettingsInput`
+
+**Responses:**
+
+- `200` — Updated budget state _(schema: `ProjectBudgetState`)_
+
+---
+
+### `POST /project/{project_id}/budget/reset`
+
+**Reset project budget**
+
+`operationId`: `resetProjectBudget`
+
+Resets the project budget now: snapshots the current period into budget history and zeroes
+consumption. Returns the budget state after the reset.
+
+When nothing has been consumed yet (no tracked time and no cost), the reset is a no-op: no
+history entry is written and `next_reset_date` of a recurrent budget is left unchanged. The
+endpoint still responds `200` with the current budget state.
+
+Only the project owner and project commanders may reset the budget.
+
+**Parameters:**
+
+- `project_id` [path, required] (integer)
+
+**Responses:**
+
+- `200` — Budget state after reset _(schema: `ProjectBudgetState`)_
 
 ---
 
@@ -1756,11 +1868,12 @@ _Request body (required)_
 - Properties:
     - `name` **required** (string)
     - `currency_iso` **required** (string enum: CZK|EUR|USD) — Currency used for budgets and invoicing in this project. Cannot be changed afterwards.
+    - `due_date` (string<date>) — Project deadline as a calendar date (`YYYY-MM-DD`). The project deadline has no time-of-day component.
     - `project_owner_id` (integer) — ID of user assigned as owner. Must be an owner-eligible user in the caller's account. If omitted, the authenticated caller becomes the owner.
 
 **Responses:**
 
-- `200` — Project created _(schema: `ProjectBasic`)_
+- `200` — Project created _(schema: `ProjectMutationResult`)_
 
 ---
 
@@ -2353,6 +2466,35 @@ _Request body (required)_
 
 ---
 
+### `DELETE /tasklist/{tasklist_id}`
+
+**Delete tasklist (soft-delete)**
+
+`operationId`: `deleteTasklist`
+
+Marks the tasklist as deleted. It disappears from project listings together with its tasks, but is retained in the database.
+
+**Use cases:**
+- Cancelling a whole batch of externally-provisioned work (the action the tasklist represented was called off)
+- Removing a tasklist created by mistake during an import
+
+**Behavior notes:**
+- This is a **soft-delete** — the row stays and `POST /tasklist/{tasklist_id}/activate` brings the tasklist and its tasks back.
+- Tasks inside are not deleted individually; they stop being listed because their tasklist is deleted. Restoring the tasklist brings them back.
+- Side effects: pending events and notifications tied to the tasklist are removed, its public shared links are revoked, and the `tasklist_deleted` webhook fires. **These side effects are permanent** — activating the tasklist again does not bring back the removed events / notifications, nor does it re-issue the revoked public links.
+- Idempotent — deleting an already-deleted tasklist returns success.
+- Both the tasklist and its project are ACL-checked. If the caller has no access to either, returns 404.
+
+**Parameters:**
+
+- `tasklist_id` [path, required] (integer)
+
+**Responses:**
+
+- `200` — Successful response _(schema: `SuccessResponse`)_
+
+---
+
 ### `GET /tasklist/{tasklist_id}`
 
 **Get tasklist detail**
@@ -2378,6 +2520,64 @@ Returns metadata for a single tasklist — name, budget, parent project referenc
 **Responses:**
 
 - `200` — Successful response _(schema: `TasklistDetail`)_
+
+---
+
+### `POST /tasklist/{tasklist_id}/activate`
+
+**Activate tasklist**
+
+`operationId`: `activateTasklist`
+
+Returns the tasklist to the `active` state. Works both as un-archive and as restore from the trash.
+
+**Use cases:**
+- Reopening work that was archived prematurely
+- Recovering a tasklist deleted by mistake
+
+**Behavior notes:**
+- Accepts tasklists in the `finished` and `deleted` states alike — both end up `active`.
+- Un-archiving clears `date_finished`.
+- This is **not** a full undo of `DELETE /tasklist/{tasklist_id}`. It restores the tasklist and its tasks, but the events and notifications removed by the delete stay gone and the revoked public shared links are not re-issued.
+- Idempotent — activating an already-active tasklist returns success.
+- Both the tasklist and its project are ACL-checked. If the caller has no access to either, returns 404.
+
+**Parameters:**
+
+- `tasklist_id` [path, required] (integer)
+
+**Responses:**
+
+- `200` — Successful response _(schema: `SuccessResponse`)_
+
+---
+
+### `POST /tasklist/{tasklist_id}/archive`
+
+**Archive tasklist**
+
+`operationId`: `archiveTasklist`
+
+Moves the tasklist to the `finished` state. It is hidden from the active tasklist listing but stays fully accessible through the archive.
+
+**Use cases:**
+- Closing a finished batch of work provisioned from an external system
+- Cleaning up the active project view without losing history
+
+**Behavior notes:**
+- Sets the tasklist state to `finished` and stamps `date_finished`.
+- Tasklists in the `deleted` state are accepted as well and end up `finished` — archiving a deleted tasklist brings it back out of the trash. The permanent side effects of the preceding delete (removed events and notifications, revoked public shared links) are not undone.
+- The `tasklist_archived` webhook fires.
+- Idempotent — archiving an already-archived tasklist returns success.
+- Both the tasklist and its project are ACL-checked. If the caller has no access to either, returns 404.
+
+**Parameters:**
+
+- `tasklist_id` [path, required] (integer)
+
+**Responses:**
+
+- `200` — Successful response _(schema: `SuccessResponse`)_
 
 ---
 
@@ -2615,6 +2815,10 @@ Copies a single task out of a project template into a target tasklist. Mirrors t
 - If `target_tasklist_id` is omitted, the copied task lands in the **same tasklist ID** it had in the template — which only works if `target_project_id` (or an auto-created project) has a tasklist with that ID. Safer to always pass both.
 - `preset_date_from` shifts floating due-dates (same as other template endpoints).
 - `users_ids` is a list of template members to invite into the destination.
+- `name` and `description` override what was copied from the template. They are applied **after** the copy, so omitting them keeps the template values and the template task itself is never modified. `description` replaces the whole description (upsert, no history) — identical semantics to `POST /task/{task_id}/description`.
+- The overrides apply to the copied task only; names and descriptions of its subtasks always come from the template. Sending `null` in either field is treated the same as omitting it.
+- A malformed request — including an invalid `description.files[].download_url` — is rejected with `400` before anything is copied, so no task is created.
+- Because the overrides themselves run after the copy has been committed, the two failures still possible afterwards (the server cannot download a well-formed `description.files[].download_url`, or you lack permission to rename a task in the destination project) return an error **and still leave the created task behind**, carrying the template name and description. There is no idempotency key, so retrying creates a second task — check the destination tasklist first.
 
 **Parameters:**
 
@@ -2632,6 +2836,8 @@ _Request body (required)_
     - `target_tasklist_id` (integer)
     - `preset_date_from` (string<date>)
     - `users_ids` (array<integer>)
+    - `name` (string) — Overrides the task name copied from the template. Trimmed before use; an empty or whitespace-only value is rejected. Omit (or send null) to keep the template one.
+    - `description` (object) — Overrides the task description copied from the template. Same shape as the POST /task/{task_id}/description request body. Omit (or send null) to keep the template description.
 
 **Responses:**
 
@@ -3018,7 +3224,73 @@ Multi-project child task IDs are not queryable here — a direct child ID return
 **Responses:**
 
 - `200` — Task relations
-- `404` — Returned when the task does not exist, when the caller has no access to the task or its project, when the project owner's plan has no team features, or when the requested ID is a multi-project child. No separate 403 is emitted — access is indistinguishable from not-found by design.
+- `403` — Returned when the project owner's plan has no team features, so relations may not be read at all. The task detail (`GET /task/{task_id}`) stays readable in that case and reports an empty `relations` array instead.
+- `404` — Returned when the task does not exist, when the caller has no access to the task or its project, or when the requested ID is a multi-project child. Access is indistinguishable from not-found by design.
+
+---
+
+### `POST /task/{task_id}/relations`
+
+**Create task relation**
+
+`operationId`: `createTaskRelation`
+
+Creates a relation between `task_id` and `related_task_id`. The `type` is always interpreted
+**from the point of view of `task_id`**, so `blocks` and `blocked_by` describe the same relation
+seen from opposite sides.
+
+`related_to` and `duplicate_of` are **symmetric** — both tasks report the same type, so
+`duplicate_of` does not record which of the two tasks is the duplicate.
+
+**400 is returned when:**
+- `type` is not one of the listed values
+- the same pair of tasks is already related
+- `related_task_id` is the task itself
+- a blocking relation would close a cycle
+
+**Parameters:**
+
+- `task_id` [path, required] (integer)
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `type` **required** (string enum: blocked_by|blocks|related_to|duplicate_of) — Relation type from the point of view of `task_id`. `related_to` and `duplicate_of` are symmetric.
+    - `related_task_id` **required** (integer) — The task on the other side of the relation.
+
+**Responses:**
+
+- `200` — Created relation _(schema: `TaskRelation`)_
+- `400` — Invalid relation type, duplicate relation, self-relation or cycle detected
+- `403` — Returned when the project owner's plan does not allow the requested relation type — `related_to` and `duplicate_of` require team features, `blocked_by` and `blocks` additionally require business features.
+- `404` — Returned when either task does not exist, when the caller has no access to it, or when either ID is a multi-project child.
+
+---
+
+### `DELETE /task/{task_id}/relations/{relation_uuid}`
+
+**Delete task relation**
+
+`operationId`: `deleteTaskRelation`
+
+Deletes a relation of `task_id`. The relation may be deleted from either side — passing the
+task on either end of the relation works.
+
+**Parameters:**
+
+- `task_id` [path, required] (integer)
+- `relation_uuid` [path, required] (string<uuid>) — UUID of the relation, as returned in the `uuid` attribute of a relation.
+
+**Responses:**
+
+- `200` — Relation deleted _(schema: `SuccessResponse`)_
+- `400` — `relation_uuid` is not a valid UUID
+- `403` — Returned when the project owner's plan does not allow the relation type — `related_to` and `duplicate_of` require team features, `blocked_by` and `blocks` additionally require business features.
+- `404` — Returned when the task does not exist, when the caller has no access to it, when no relation with `relation_uuid` exists, or when that relation is not attached to `task_id`.
 
 ---
 

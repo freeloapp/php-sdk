@@ -15,6 +15,7 @@ namespace Freelo\Sdk\Generated\Model;
 class TaskRelation
 {
     public function __construct(
+        public readonly ?string $uuid = null,
         public readonly ?string $type = null,
         public readonly ?int $relatedTaskId = null,
         public readonly ?string $relatedTaskName = null,
@@ -29,6 +30,7 @@ class TaskRelation
     public static function fromArray(array $data): self
     {
         return new self(
+            uuid: isset($data['uuid']) ? (string) $data['uuid'] : null,
             type: isset($data['type']) ? (string) $data['type'] : null,
             relatedTaskId: isset($data['related_task_id']) ? (int) $data['related_task_id'] : null,
             relatedTaskName: isset($data['related_task_name']) ? (string) $data['related_task_name'] : null,
