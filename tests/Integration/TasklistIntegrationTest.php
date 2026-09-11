@@ -31,7 +31,7 @@ class TasklistIntegrationTest extends IntegrationTestCase
         $project = $projectResult->first();
 
         // Then get tasklists for that project
-        $tasklists = $this->getFreelo()->tasklists()->listInProject($project->id);
+        $tasklists = $this->getFreelo()->tasklists()->list($project->id);
 
         $this->assertIsArray($tasklists);
 

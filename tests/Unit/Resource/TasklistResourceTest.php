@@ -59,20 +59,80 @@ class TasklistResourceTest extends TestCase
     public function testList(): void
     {
         $responseData = [
-            ['id' => 1, 'name' => 'List 1'],
-            ['id' => 2, 'name' => 'List 2'],
+            'data' => [
+                ['id' => 1, 'name' => 'List 1'],
+                ['id' => 2, 'name' => 'List 2'],
+            ],
+            'total' => 2,
+            'count' => 2,
+            'page' => 0,
+            'per_page' => 10,
         ];
         $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
 
         $this->client->expects($this->once())
             ->method('get')
-            ->with('project/123/tasklists')
+            ->with('all-tasklists', ['projects_ids' => [123], 'p' => 0])
             ->willReturn($response);
 
         $lists = $this->resource->list(123);
 
         $this->assertCount(2, $lists);
         $this->assertContainsOnlyInstancesOf(Tasklist::class, $lists);
+    }
+
+    public function testListWalksEveryPage(): void
+    {
+        $page0 = $this->createSuccessResponse(json_encode([
+            'data' => [['id' => 1, 'name' => 'List 1']],
+            'total' => 2,
+            'count' => 1,
+            'page' => 0,
+            'per_page' => 1,
+        ], JSON_THROW_ON_ERROR));
+
+        $page1 = $this->createSuccessResponse(json_encode([
+            'data' => [['id' => 2, 'name' => 'List 2']],
+            'total' => 2,
+            'count' => 1,
+            'page' => 1,
+            'per_page' => 1,
+        ], JSON_THROW_ON_ERROR));
+
+        $matcher = $this->exactly(2);
+        $this->client->expects($matcher)
+            ->method('get')
+            ->willReturnCallback(function (string $uri, array $params) use ($matcher, $page0, $page1): Response {
+                $page = $matcher->numberOfInvocations() - 1;
+
+                $this->assertSame('all-tasklists', $uri);
+                $this->assertSame(['projects_ids' => [123], 'p' => $page], $params);
+
+                return $page === 0 ? $page0 : $page1;
+            });
+
+        $lists = $this->resource->list(123);
+
+        $this->assertCount(2, $lists);
+        $this->assertSame([1, 2], array_map(fn(Tasklist $l) => $l->id, $lists));
+    }
+
+    public function testListPassesFiltersThrough(): void
+    {
+        $response = $this->createSuccessResponse(json_encode([
+            'data' => [],
+            'total' => 0,
+            'count' => 0,
+            'page' => 0,
+            'per_page' => 10,
+        ], JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('get')
+            ->with('all-tasklists', ['states' => ['active'], 'projects_ids' => [123], 'p' => 0])
+            ->willReturn($response);
+
+        $this->assertSame([], $this->resource->list(123, ['states' => ['active']]));
     }
 
     public function testGet(): void
