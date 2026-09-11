@@ -1,0 +1,80 @@
+name: Auto Tag
+
+# Tags a release as soon as its CHANGELOG section lands on master.
+#
+# The release cut (moving `## [Unreleased]` content under `## [X.Y.Z] - DATE`)
+# is the single manual step. Once that commit is on master and CI is green,
+# this workflow creates `vX.Y.Z` and hands off to the Release workflow.
+#
+# Why `workflow_run` instead of `push`: tagging a red master would publish a
+# broken release, so the tag waits for the CI run of that exact commit.
+#
+# Why the Release workflow is *called* rather than triggered by the tag push:
+# pushes made with `GITHUB_TOKEN` do not trigger further workflow runs, so the
+# `push: tags` trigger in release.yml would never fire for an automated tag.
+# That trigger stays in place for tags pushed by hand.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: Tag released version
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.detect.outputs.version }}
+      tagged: ${{ steps.detect.outputs.tagged }}
+
+    steps:
+      - name: Checkout the commit CI validated
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Detect and push tag
+        id: detect
+        run: |
+          # Topmost released section in the changelog. `## [Unreleased]` has no
+          # version number, so the pattern skips it on its own.
+          VERSION=$(sed -n 's/^## \[\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)\].*/\1/p' CHANGELOG.md | head -1)
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::No released version heading found in CHANGELOG.md"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "v$VERSION is already tagged — nothing to release."
+            echo "tagged=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
+          echo "tagged=true" >> $GITHUB_OUTPUT
+          echo "Tagged v$VERSION at ${{ github.event.workflow_run.head_sha }}."
+
+  release:
+    name: Release
+    needs: tag
+    if: needs.tag.outputs.tagged == 'true'
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
+    with:
+      version: ${{ needs.tag.outputs.version }}
