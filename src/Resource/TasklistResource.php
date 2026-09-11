@@ -43,18 +43,38 @@ class TasklistResource extends AbstractResource
     /**
      * List tasklists in a project
      *
+     * Walks every page of `GET /all-tasklists` filtered to the project, so the
+     * return value is the complete list rather than the first page. A `p` key in
+     * $filters is therefore ignored.
+     *
+     * Both active and finished tasklists come back unless $filters narrows the
+     * `states` filter.
+     *
+     * @param array<string, mixed> $filters Available filters:
+     *   - states: string[] - active|finished (default: both)
+     *   - order_by: string - name|date_add|priority
+     *   - order: string - asc|desc
      * @return Tasklist[]
      * @throws ApiException
      */
-    public function list(int $projectId): array
+    public function list(int $projectId, array $filters = []): array
     {
-        $response = $this->client->get("project/{$projectId}/tasklists");
-        $data = $this->parser->parseCollection($response);
+        $filters['projects_ids'] = [$projectId];
+        $page = 0;
+        $tasklists = [];
 
-        return array_map(
-            fn(array $item) => Tasklist::fromArray($item),
-            $data
-        );
+        do {
+            $filters['p'] = $page;
+            $result = $this->getAll($filters);
+
+            foreach ($result as $tasklist) {
+                $tasklists[] = $tasklist;
+            }
+
+            $page++;
+        } while ($result->hasNextPage());
+
+        return $tasklists;
     }
 
     /**

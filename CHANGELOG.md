@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`TasklistResource::list()` hit an endpoint that is not in the spec** — it called `GET /project/{project_id}/tasklists`, which the OpenAPI spec has never documented (only the `POST` on that path exists), so the coverage check flagged it as a resource endpoint missing upstream. It now pages through the documented `GET /all-tasklists` with `projects_ids`, walking every page so the result stays the complete list, and takes an optional `$filters` argument (`states`, `order_by`, `order`). Two behavior notes: the response is `TasklistFull` rather than whatever the undocumented endpoint returned, and finished tasklists are included unless `states` narrows it.
+- **`tasklists()->listInProject()` does not exist** — `examples/basic-usage.php` and `TasklistIntegrationTest` both called it, which is a fatal `Error` at runtime; the integration test never caught it because it skips without API credentials. Both now call `list()`.
+
 ## [2.4.0] - 2026-09-11
 
 ### Added

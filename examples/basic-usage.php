@@ -60,7 +60,7 @@ try {
         // 3. List tasklists in the project
         echo "\n=== Tasklists ===\n\n";
 
-        $tasklists = $freelo->tasklists()->listInProject($projectId);
+        $tasklists = $freelo->tasklists()->list($projectId);
 
         if (empty($tasklists)) {
             echo "No tasklists found in this project.\n";
