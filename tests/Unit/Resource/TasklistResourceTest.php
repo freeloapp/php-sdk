@@ -171,6 +171,42 @@ class TasklistResourceTest extends TestCase
         $this->assertContainsOnlyInstancesOf(User::class, $workers);
     }
 
+    public function testDelete(): void
+    {
+        $response = $this->createSuccessResponse('', 200);
+
+        $this->client->expects($this->once())
+            ->method('delete')
+            ->with('tasklist/456')
+            ->willReturn($response);
+
+        $this->assertTrue($this->resource->delete(456));
+    }
+
+    public function testArchive(): void
+    {
+        $response = $this->createSuccessResponse('', 200);
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with('tasklist/456/archive')
+            ->willReturn($response);
+
+        $this->assertTrue($this->resource->archive(456));
+    }
+
+    public function testActivate(): void
+    {
+        $response = $this->createSuccessResponse('', 200);
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with('tasklist/456/activate')
+            ->willReturn($response);
+
+        $this->assertTrue($this->resource->activate(456));
+    }
+
     private function createSuccessResponse(string $body, int $statusCode = 200): Response
     {
         $stream = $this->createMock(StreamInterface::class);

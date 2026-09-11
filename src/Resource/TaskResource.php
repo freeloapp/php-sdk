@@ -405,4 +405,66 @@ class TaskResource extends AbstractResource
 
         return Comment::fromArray($responseData);
     }
+
+    /**
+     * Get all relations of a task
+     *
+     * Relations to tasks the caller cannot access are filtered out. Relation type
+     * visibility depends on the project owner's plan - on lower plans the
+     * corresponding buckets come back empty.
+     *
+     * @return array<int, array<string, mixed>> Relations, each with uuid, type,
+     *   related_task_id and related_task_name
+     * @throws ApiException
+     */
+    public function getRelations(int $taskId): array
+    {
+        $response = $this->client->get("task/{$taskId}/relations");
+        $data = $this->parser->parseSingle($response);
+
+        $relations = $data['relations'] ?? [];
+
+        if (!is_array($relations)) {
+            return [];
+        }
+
+        return array_values(array_filter($relations, 'is_array'));
+    }
+
+    /**
+     * Create a relation between two tasks
+     *
+     * The type is always interpreted from the point of view of $taskId, so blocks
+     * and blocked_by describe the same relation seen from opposite sides.
+     * related_to and duplicate_of are symmetric.
+     *
+     * @param string $type One of: blocked_by, blocks, related_to, duplicate_of
+     * @return array<string, mixed> The created relation
+     * @throws ApiException
+     */
+    public function createRelation(int $taskId, string $type, int $relatedTaskId): array
+    {
+        $response = $this->client->post("task/{$taskId}/relations", [
+            'type' => $type,
+            'related_task_id' => $relatedTaskId,
+        ]);
+
+        return $this->parser->parseSingle($response);
+    }
+
+    /**
+     * Delete a task relation
+     *
+     * The relation may be deleted from either side - passing the task on either
+     * end of the relation works.
+     *
+     * @param string $relationUuid UUID from the relation's uuid attribute
+     * @throws ApiException
+     */
+    public function deleteRelation(int $taskId, string $relationUuid): bool
+    {
+        $response = $this->client->delete("task/{$taskId}/relations/{$relationUuid}");
+
+        return $this->parser->parseBoolean($response);
+    }
 }

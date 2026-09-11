@@ -77,6 +77,8 @@ $projects = $freelo->projects()->list();           // List active projects
 $project = $freelo->projects()->get(123);          // Get project by ID
 $freelo->projects()->archive(123);                 // Archive project
 $freelo->projects()->activate(123);                // Activate archived project
+$freelo->projects()->update(123, ['name' => 'New name', 'due_date' => '2026-08-15']);
+$budget = $freelo->projects()->getBudget(123);     // Budget settings + consumption
 
 // Paginated results
 $result = $freelo->projects()->getAll(['p' => 0]);
@@ -92,6 +94,8 @@ $freelo->tasks()->finish(789);                         // Mark as complete
 $freelo->tasks()->activate(789);                       // Reopen task
 $freelo->tasks()->move(789, 999);                      // Move to another tasklist
 $freelo->tasks()->addComment(789, 'Comment text');     // Add comment
+$freelo->tasks()->createRelation(789, 'blocks', 790);  // Relate two tasks
+$relations = $freelo->tasks()->getRelations(789);      // Read task relations
 ```
 
 ### Time Tracking

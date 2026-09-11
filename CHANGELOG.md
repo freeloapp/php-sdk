@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`ProjectResource::update()`** — new `PATCH /project/{project_id}` endpoint. Partial update of `name` and `due_date` (`null` clears the deadline); those are the only editable fields, owner and currency stay app-only. Non-owner / non-commander callers get 404, indistinguishable from a missing project.
+- **Project budget on `ProjectResource`** — `getBudget()` (`GET /project/{project_id}/budget`), `setBudget()` (`POST /project/{project_id}/budget`) and `resetBudget()` (`POST /project/{project_id}/budget/reset`). Budget state covers settings plus consumption and remaining values for money and time; cancel a budget with `budget: null` + `minutes_budget: 0` + `is_recurrent: false`. A reset with nothing consumed is a no-op. Owner / commander only.
+- **`TasklistResource::delete()`, `archive()`, `activate()`** — `DELETE /tasklist/{tasklist_id}`, `POST /tasklist/{tasklist_id}/archive` and `POST /tasklist/{tasklist_id}/activate`. Delete is a soft-delete that `activate()` undoes for the tasklist and its tasks, but the removed events / notifications and revoked public links stay gone. All three are idempotent.
+- **Task relations on `TaskResource`** — `getRelations()` (`GET /task/{task_id}/relations`), `createRelation()` (`POST /task/{task_id}/relations`) and `deleteRelation()` (`DELETE /task/{task_id}/relations/{relation_uuid}`). Types `blocked_by` / `blocks` / `related_to` / `duplicate_of` are read from the point of view of `task_id`; `related_to` and `duplicate_of` are symmetric. Relation types depend on the project owner's plan (team features for `related_to` / `duplicate_of`, business features for the blocking pair).
+
 ### Changed
+- **Synced OpenAPI spec to upstream** — the endpoints above plus regenerated `src/Generated/` models (`ProjectBudgetState`, `ProjectBudgetSettingsInput`, `ProjectMutationResult`, `TaskRelation`, `TasklistWithBudget`) and `docs/ENDPOINTS.md`. `GET /task/{task_id}/relations` left the endpoint-coverage ignore list now that it is implemented.
 - **PHPStan 1.12 → 2.x** (`phpstan/phpstan: ^2.0`) — dev-only, no runtime impact. The stricter 2.x inference caught one real contract violation: `PaginatedResult::count()` is a `Countable` implementation, so it must return `int<0, max>`, but it returned the raw `count` field from the API response. `ResponseParser` now clamps that field to the non-negative range as it comes off the wire, and the constructor documents the narrowed type. Analysis stays at level 8 and passes clean.
 
 ### Fixed
