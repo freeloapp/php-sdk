@@ -202,11 +202,21 @@ This project follows [Semantic Versioning](https://semver.org/):
 
 ## Release Process
 
-1. Update `CHANGELOG.md`
-2. Update version in relevant files
-3. Create a git tag
-4. Push tag to trigger release workflow
-5. GitHub Actions will handle the rest
+Cutting the changelog section is the only manual step — tagging and publishing
+are automatic.
+
+1. On a `chore/release-X.Y.Z` branch, move the `## [Unreleased]` content under a
+   new `## [X.Y.Z] - YYYY-MM-DD` heading and add the compare links at the bottom
+   of `CHANGELOG.md`.
+2. Open a PR and merge it into `master`.
+3. Once CI is green on that merge commit, the `Auto Tag` workflow reads the
+   topmost released version from `CHANGELOG.md`, pushes `vX.Y.Z` and calls the
+   `Release` workflow, which publishes the GitHub release with that section as
+   the release notes. Packagist updates from its webhook.
+
+A tag that already exists is left alone, so re-running CI on `master` never
+re-releases. Pushing a `vX.Y.Z` tag by hand still works and runs the same
+`Release` workflow.
 
 ## Questions?
 

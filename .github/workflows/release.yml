@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  # Called by auto-tag.yml, which pushes the tag itself. A `GITHUB_TOKEN` push
+  # does not trigger the `push: tags` event above, so the automated path has to
+  # invoke this workflow directly and pass the version in.
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to release, without the leading v (e.g. 2.4.0)'
+        type: string
+        required: true
 
 permissions:
   contents: write
@@ -17,11 +26,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
+          # On the tag-push path this is the tag itself; when called by
+          # auto-tag.yml the ref is the branch, so check out the tag explicitly.
+          ref: ${{ inputs.version && format('refs/tags/v{0}', inputs.version) || github.ref }}
           fetch-depth: 0
 
-      - name: Get version from tag
+      - name: Get version
         id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          if [ -z "$VERSION" ]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Extract changelog
         id: changelog
@@ -55,6 +74,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
+          # Explicit — on the workflow_call path the ref is a branch, so the
+          # action cannot infer the tag.
+          tag_name: v${{ steps.get_version.outputs.version }}
           name: Release v${{ steps.get_version.outputs.version }}
           body_path: RELEASE_NOTES.md
           draft: false
