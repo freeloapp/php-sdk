@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-09-11
+
 ### Added
 - **`ProjectResource::update()`** — new `PATCH /project/{project_id}` endpoint. Partial update of `name` and `due_date` (`null` clears the deadline); those are the only editable fields, owner and currency stay app-only. Non-owner / non-commander callers get 404, indistinguishable from a missing project.
 - **Project budget on `ProjectResource`** — `getBudget()` (`GET /project/{project_id}/budget`), `setBudget()` (`POST /project/{project_id}/budget`) and `resetBudget()` (`POST /project/{project_id}/budget/reset`). Budget state covers settings plus consumption and remaining values for money and time; cancel a budget with `budget: null` + `minutes_budget: 0` + `is_recurrent: false`. A reset with nothing consumed is a no-op. Owner / commander only.
@@ -15,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Synced OpenAPI spec to upstream** — the endpoints above plus regenerated `src/Generated/` models (`ProjectBudgetState`, `ProjectBudgetSettingsInput`, `ProjectMutationResult`, `TaskRelation`, `TasklistWithBudget`) and `docs/ENDPOINTS.md`. `GET /task/{task_id}/relations` left the endpoint-coverage ignore list now that it is implemented.
+- **Automated tagging** — `Auto Tag` (`.github/workflows/auto-tag.yml`) now tags a release once its changelog section is on `master` and CI for that commit is green, then calls the `Release` workflow. Cutting the `## [X.Y.Z]` section is the only manual step left. `release.yml` gained a `workflow_call` entry point for that path because a tag pushed with `GITHUB_TOKEN` does not fire the `push: tags` trigger; pushing a tag by hand still works unchanged.
 - **PHPStan 1.12 → 2.x** (`phpstan/phpstan: ^2.0`) — dev-only, no runtime impact. The stricter 2.x inference caught one real contract violation: `PaginatedResult::count()` is a `Countable` implementation, so it must return `int<0, max>`, but it returned the raw `count` field from the API response. `ResponseParser` now clamps that field to the non-negative range as it comes off the wire, and the constructor documents the narrowed type. Analysis stays at level 8 and passes clean.
 
 ### Fixed
@@ -227,7 +230,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Code coverage reporting
 
-[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/freeloapp/php-sdk/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/freeloapp/php-sdk/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/freeloapp/php-sdk/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/freeloapp/php-sdk/compare/v2.0.0...v2.1.0
