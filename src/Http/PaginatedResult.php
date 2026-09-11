@@ -29,7 +29,7 @@ class PaginatedResult implements IteratorAggregate, Countable
     /**
      * @param T[] $items Items on current page
      * @param int $total Total number of items across all pages
-     * @param int $count Number of items on current page
+     * @param int<0, max> $count Number of items on current page
      * @param int $page Current page number (0-indexed)
      * @param int $perPage Items per page
      */

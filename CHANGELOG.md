@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **PHPStan 1.12 → 2.x** (`phpstan/phpstan: ^2.0`) — dev-only, no runtime impact. The stricter 2.x inference caught one real contract violation: `PaginatedResult::count()` is a `Countable` implementation, so it must return `int<0, max>`, but it returned the raw `count` field from the API response. `ResponseParser` now clamps that field to the non-negative range as it comes off the wire, and the constructor documents the narrowed type. Analysis stays at level 8 and passes clean.
+
 ### Fixed
 - **Release notes extraction** — the `Release` workflow pulled a version's section out of `CHANGELOG.md` with an awk range (`/## \[$VERSION\]/,/## \[/`), but the opening line matches the closing pattern too, so the range collapsed to that single line and `sed '1d;$d'` left nothing: every bot-created release got an empty body (v2.3.0 was the first one not backfilled by hand). Replaced with a flag-based awk scan plus a guard that fails the release when the section is empty or missing.
 
