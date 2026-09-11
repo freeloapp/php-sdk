@@ -143,4 +143,50 @@ class TasklistResource extends AbstractResource
             $data
         );
     }
+
+    /**
+     * Delete a tasklist (soft-delete)
+     *
+     * The tasklist and its tasks disappear from listings but are retained -
+     * activate() brings them back. Side effects of the delete (removed events and
+     * notifications, revoked public links) are permanent and are not undone by
+     * a later activate().
+     *
+     * @throws ApiException
+     */
+    public function delete(int $tasklistId): bool
+    {
+        $response = $this->client->delete("tasklist/{$tasklistId}");
+
+        return $this->parser->parseBoolean($response);
+    }
+
+    /**
+     * Archive a tasklist
+     *
+     * Moves the tasklist to the finished state. Idempotent.
+     *
+     * @throws ApiException
+     */
+    public function archive(int $tasklistId): bool
+    {
+        $response = $this->client->post("tasklist/{$tasklistId}/archive");
+
+        return $this->parser->parseBoolean($response);
+    }
+
+    /**
+     * Activate a tasklist
+     *
+     * Returns the tasklist to the active state - works both as un-archive and as
+     * restore from the trash. Idempotent.
+     *
+     * @throws ApiException
+     */
+    public function activate(int $tasklistId): bool
+    {
+        $response = $this->client->post("tasklist/{$tasklistId}/activate");
+
+        return $this->parser->parseBoolean($response);
+    }
 }

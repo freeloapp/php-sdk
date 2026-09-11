@@ -328,6 +328,75 @@ class ProjectResourceTest extends TestCase
         $this->assertTrue($result);
     }
 
+    public function testUpdate(): void
+    {
+        $responseData = ['id' => 123, 'name' => 'Renamed project', 'due_date' => '2026-08-15'];
+        $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('patch')
+            ->with('project/123', ['name' => 'Renamed project', 'due_date' => '2026-08-15'])
+            ->willReturn($response);
+
+        $project = $this->resource->update(123, ['name' => 'Renamed project', 'due_date' => '2026-08-15']);
+
+        $this->assertInstanceOf(Project::class, $project);
+        $this->assertSame('Renamed project', $project->name);
+    }
+
+    public function testGetBudget(): void
+    {
+        $responseData = [
+            'is_recurrent' => false,
+            'budget' => '100000',
+            'minutes_budget' => 600,
+            'spent_minutes' => 120,
+            'remaining_minutes' => 480,
+        ];
+        $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('get')
+            ->with('project/123/budget')
+            ->willReturn($response);
+
+        $budget = $this->resource->getBudget(123);
+
+        $this->assertSame('100000', $budget['budget']);
+        $this->assertSame(480, $budget['remaining_minutes']);
+    }
+
+    public function testSetBudget(): void
+    {
+        $data = ['is_recurrent' => true, 'budget' => '100000', 'minutes_budget' => 600, 'null_in_day_of_month' => 1];
+        $responseData = ['is_recurrent' => true, 'budget' => '100000', 'minutes_budget' => 600];
+        $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with('project/123/budget', $data)
+            ->willReturn($response);
+
+        $budget = $this->resource->setBudget(123, $data);
+
+        $this->assertTrue($budget['is_recurrent']);
+    }
+
+    public function testResetBudget(): void
+    {
+        $responseData = ['is_recurrent' => false, 'spent_minutes' => 0, 'spent_cost' => '0'];
+        $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with('project/123/budget/reset')
+            ->willReturn($response);
+
+        $budget = $this->resource->resetBudget(123);
+
+        $this->assertSame(0, $budget['spent_minutes']);
+    }
+
     private function createSuccessResponse(string $body, int $statusCode = 200): Response
     {
         $stream = $this->createMock(StreamInterface::class);

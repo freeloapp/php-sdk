@@ -10,18 +10,14 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Generated\Model;
 
 /**
- * ProjectWithTasklists model.
+ * ProjectMutationResult model.
  */
-class ProjectWithTasklists
+class ProjectMutationResult
 {
     public function __construct(
         public readonly ?int $id = null,
         public readonly ?string $name = null,
         public readonly ?\DateTimeImmutable $dueDate = null,
-        public readonly ?\DateTimeImmutable $dateAdd = null,
-        public readonly ?\DateTimeImmutable $dateEditedAt = null,
-        public readonly array $tasklists = [],
-        public readonly mixed $client,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -36,11 +32,6 @@ class ProjectWithTasklists
             id: isset($data['id']) ? (int) $data['id'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
             dueDate: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['due_date'] ?? null),
-            dateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_add'] ?? null),
-            dateEditedAt: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['date_edited_at'] ?? null),
-            tasklists: isset($data['tasklists']) && is_array($data['tasklists'])
-                ? $data['tasklists'] : [],
-            client: isset($data['client']) ? $data['client'] : null,
             data: $data,
         );
     }

@@ -161,6 +161,26 @@ class ProjectResource extends AbstractResource
     }
 
     /**
+     * Update a project (partial update)
+     *
+     * Only the keys present in $data are changed; omitted fields are left untouched.
+     * Name and deadline are the only editable fields - owner and currency must be
+     * changed in the Freelo app.
+     *
+     * @param array<string, mixed> $data Available fields:
+     *   - name: string - New project name
+     *   - due_date: string|null - Deadline as Y-m-d; null clears the deadline
+     * @throws ApiException
+     */
+    public function update(int $projectId, array $data): Project
+    {
+        $response = $this->client->patch("project/{$projectId}", $data);
+        $responseData = $this->parser->parseSingle($response);
+
+        return Project::fromArray($responseData);
+    }
+
+    /**
      * Delete a project
      *
      * @throws ApiException
@@ -254,5 +274,62 @@ class ProjectResource extends AbstractResource
         );
 
         return $this->parser->parseBoolean($response);
+    }
+
+    /**
+     * Get the current budget state of a project
+     *
+     * Only the project owner and project commanders may read the budget.
+     *
+     * @return array<string, mixed> Budget settings plus consumption and remaining
+     *   values for both money (budget, spent_cost, remaining_cost) and time
+     *   (minutes_budget, spent_minutes, remaining_minutes).
+     * @throws ApiException
+     */
+    public function getBudget(int $projectId): array
+    {
+        $response = $this->client->get("project/{$projectId}/budget");
+
+        return $this->parser->parseSingle($response);
+    }
+
+    /**
+     * Set or change the project budget
+     *
+     * To cancel the budget send budget: null and minutes_budget: 0 with
+     * is_recurrent: false - the budget resets to empty/zero.
+     *
+     * @param array<string, mixed> $data Available fields:
+     *   - is_recurrent: bool - Whether the budget resets periodically (required)
+     *   - budget: string|null - Amount in minor currency units as string
+     *     (e.g. "100000" for 1000.00); null clears the money budget
+     *   - minutes_budget: int|null - Time budget in minutes; 0 clears it
+     *   - null_in_day_of_month: int|null - Day of month the recurrent budget resets on
+     *   - null_after_months_count: int|null - Reset interval in months
+     * @return array<string, mixed> Budget state after the change
+     * @throws ApiException
+     */
+    public function setBudget(int $projectId, array $data): array
+    {
+        $response = $this->client->post("project/{$projectId}/budget", $data);
+
+        return $this->parser->parseSingle($response);
+    }
+
+    /**
+     * Reset the project budget now
+     *
+     * Snapshots the current period into budget history and zeroes consumption.
+     * When nothing has been consumed the reset is a no-op and the current state
+     * is returned unchanged.
+     *
+     * @return array<string, mixed> Budget state after the reset
+     * @throws ApiException
+     */
+    public function resetBudget(int $projectId): array
+    {
+        $response = $this->client->post("project/{$projectId}/budget/reset");
+
+        return $this->parser->parseSingle($response);
     }
 }

@@ -367,6 +367,65 @@ class TaskResourceTest extends TestCase
         $this->assertInstanceOf(PaginatedResult::class, $result);
     }
 
+    public function testGetRelations(): void
+    {
+        $responseData = [
+            'relations' => [
+                ['uuid' => 'aaaa-bbbb', 'type' => 'blocks', 'related_task_id' => 2, 'related_task_name' => 'Other'],
+            ],
+        ];
+        $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('get')
+            ->with('task/1/relations')
+            ->willReturn($response);
+
+        $relations = $this->resource->getRelations(1);
+
+        $this->assertCount(1, $relations);
+        $this->assertSame('aaaa-bbbb', $relations[0]['uuid']);
+    }
+
+    public function testGetRelationsReturnsEmptyArrayWhenNoneAreReadable(): void
+    {
+        $response = $this->createSuccessResponse(json_encode(['relations' => []], JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('get')
+            ->with('task/1/relations')
+            ->willReturn($response);
+
+        $this->assertSame([], $this->resource->getRelations(1));
+    }
+
+    public function testCreateRelation(): void
+    {
+        $responseData = ['uuid' => 'aaaa-bbbb', 'type' => 'blocked_by', 'related_task_id' => 2];
+        $response = $this->createSuccessResponse(json_encode($responseData, JSON_THROW_ON_ERROR));
+
+        $this->client->expects($this->once())
+            ->method('post')
+            ->with('task/1/relations', ['type' => 'blocked_by', 'related_task_id' => 2])
+            ->willReturn($response);
+
+        $relation = $this->resource->createRelation(1, 'blocked_by', 2);
+
+        $this->assertSame('aaaa-bbbb', $relation['uuid']);
+    }
+
+    public function testDeleteRelation(): void
+    {
+        $response = $this->createSuccessResponse('', 200);
+
+        $this->client->expects($this->once())
+            ->method('delete')
+            ->with('task/1/relations/aaaa-bbbb')
+            ->willReturn($response);
+
+        $this->assertTrue($this->resource->deleteRelation(1, 'aaaa-bbbb'));
+    }
+
     private function createSuccessResponse(string $body, int $statusCode = 200): Response
     {
         $stream = $this->createMock(StreamInterface::class);

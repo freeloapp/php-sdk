@@ -10,10 +10,9 @@
 # tight — every entry is a known gap, not a dumping ground. Remove a line once
 # the endpoint is implemented in a resource so the SDK stays honest.
 
-# --- Known gaps as of 2026-06-09 (task relations + multi-project tasks) ---
+# --- Known gaps as of 2026-06-09 (bulk relations + multi-project tasks) ---
 # Implement these in TaskResource and drop the lines, or leave them parked
 # here until product decides the SDK should cover them.
-GET /task/{}/relations
 POST /tasks/relations
 POST /task/{}/projects
 DELETE /task/{}/projects/{}

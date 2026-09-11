@@ -38,6 +38,7 @@ class TaskDetail
         public readonly mixed $totalTimeEstimate,
         public readonly array $usersTimeEstimates = [],
         public readonly array $trackingUsers = [],
+        public readonly array $relations = [],
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -77,6 +78,8 @@ class TaskDetail
                 ? $data['users_time_estimates'] : [],
             trackingUsers: isset($data['tracking_users']) && is_array($data['tracking_users'])
                 ? $data['tracking_users'] : [],
+            relations: isset($data['relations']) && is_array($data['relations'])
+                ? $data['relations'] : [],
             data: $data,
         );
     }
