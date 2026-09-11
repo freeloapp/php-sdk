@@ -47,6 +47,9 @@ class TasklistResource extends AbstractResource
      * return value is the complete list rather than the first page. A `p` key in
      * $filters is therefore ignored.
      *
+     * The API serves no per-project tasklist listing - `GET /project/{id}/tasklists`
+     * is a 404 (that path is the POST that creates a tasklist) and is not planned.
+     *
      * Both active and finished tasklists come back unless $filters narrows the
      * `states` filter.
      *
