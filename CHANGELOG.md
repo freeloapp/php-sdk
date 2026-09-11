@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Dependency audit in CI** — new `composer check:security` (`composer audit --abandoned=report`), wired into the `Code Quality` job. `composer.lock` is gitignored, so every run resolves dependencies afresh and nothing pins a vulnerable version away; this step fails the build when an installed package is covered by a security advisory.
+
 ### Fixed
 - **`TasklistResource::list()` always returned 404** — it called `GET /project/{project_id}/tasklists`, which the API does not serve: the only route on that path is the `POST` that creates a tasklist, and routes are method-scoped, so the `GET` never matched. The endpoint was never implemented upstream and will not be added, which is why the spec documents `post` only. It now pages through `GET /all-tasklists` with `projects_ids`, walking every page so the result is the complete list, and takes an optional `$filters` argument (`states`, `order_by`, `order`). Items come back as `TasklistFull`, and finished tasklists are included unless `states` narrows it. (`GET /project/{project_id}` is the other option — its detail embeds ACL-filtered tasklists — but those carry only `id`, `name` and tasks.)
 - **`tasklists()->listInProject()` does not exist** — `examples/basic-usage.php` and `TasklistIntegrationTest` both called it, which is a fatal `Error` at runtime; the integration test never caught it because it skips without API credentials. Both now call `list()`.
