@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Deprecated custom-field value endpoints on `CustomFieldResource`** — `addValue()` (`POST /custom-field/add-value/{task_id}`), `changeValue()` (`POST /custom-field/change-value/{uuid}`), `addEnumValue()` (`POST /custom-field/add-enum-value/{task_id}`) and `changeEnumValue()` (`POST /custom-field/change-enum-value/{uuid}`). Upstream marks all four `deprecated` in favour of the upsert pair `addOrEditValue()` / `addOrEditEnumValue()`, which the SDK already had; they are covered so the client matches the spec, and carry `@deprecated` docblocks pointing at the replacement. The add/change split addresses a value by its own UUID and so requires the caller to know whether one already exists — the upsert endpoints key off (`task_id`, `custom_field_uuid`) instead. `addEnumValue()` takes `customFieldUuid` in camelCase, matching the endpoint's own body contract.
+
 ### Changed
 - **Dependency audit in CI** — new `composer check:security` (`composer audit --abandoned=report`), wired into the `Code Quality` job. `composer.lock` is gitignored, so every run resolves dependencies afresh and nothing pins a vulnerable version away; this step fails the build when an installed package is covered by a security advisory.
 
