@@ -113,6 +113,86 @@ class CustomFieldResource extends AbstractResource
     }
 
     /**
+     * Add a scalar custom field value to a task
+     *
+     * Creates a value of a non-enum custom field. The value's UUID is generated
+     * server-side unless `uuid` is passed in $data; `custom_field_uuid` and
+     * `value` are required.
+     *
+     * @deprecated Upstream deprecated this endpoint. Use addOrEditValue(), which
+     *             upserts by (task_id, custom_field_uuid) and does not require the
+     *             caller to know whether a value already exists.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     * @throws ApiException
+     */
+    public function addValue(int $taskId, array $data): array
+    {
+        $response = $this->client->post("custom-field/add-value/{$taskId}", $data);
+
+        return $this->parser->parseSingle($response);
+    }
+
+    /**
+     * Change a scalar custom field value
+     *
+     * Addressed by the value's own UUID, not by (task, custom field).
+     *
+     * @deprecated Upstream deprecated this endpoint. Use addOrEditValue() instead.
+     *
+     * @return array<string, mixed>
+     * @throws ApiException
+     */
+    public function changeValue(string $uuid, string $value): array
+    {
+        $response = $this->client->post("custom-field/change-value/{$uuid}", [
+            'value' => $value,
+        ]);
+
+        return $this->parser->parseSingle($response);
+    }
+
+    /**
+     * Assign an enum option to a task
+     *
+     * $data takes `customFieldUuid` in camelCase — unlike the rest of the API,
+     * which is snake_case — and `value` is the UUID of the enum option, not the
+     * displayed string.
+     *
+     * @deprecated Upstream deprecated this endpoint. Use addOrEditEnumValue() instead.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     * @throws ApiException
+     */
+    public function addEnumValue(int $taskId, array $data): array
+    {
+        $response = $this->client->post("custom-field/add-enum-value/{$taskId}", $data);
+
+        return $this->parser->parseSingle($response);
+    }
+
+    /**
+     * Change which enum option an assigned custom field value points to
+     *
+     * $uuid is the custom field value's UUID; $value is the UUID of the enum option.
+     *
+     * @deprecated Upstream deprecated this endpoint. Use addOrEditEnumValue() instead.
+     *
+     * @return array<string, mixed>
+     * @throws ApiException
+     */
+    public function changeEnumValue(string $uuid, string $value): array
+    {
+        $response = $this->client->post("custom-field/change-enum-value/{$uuid}", [
+            'value' => $value,
+        ]);
+
+        return $this->parser->parseSingle($response);
+    }
+
+    /**
      * Delete a custom field value
      *
      * @throws ApiException

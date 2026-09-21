@@ -7,12 +7,12 @@
 
 This digest exists to give LLMs and humans fast access to endpoint semantics (use cases, behavior notes, side effects) without parsing the full spec. Regenerated from `.openapi/freelo-api.yaml` on every `composer generate`.
 
-Total endpoints: **127** across 19 tag(s).
+Total endpoints: **131** across 19 tag(s).
 
 ## Table of contents
 
 - [Comments](#comments) — 4 endpoints
-- [Custom Fields](#custom-fields) — 14 endpoints
+- [Custom Fields](#custom-fields) — 18 endpoints
 - [Events](#events) — 1 endpoint
 - [Files](#files) — 4 endpoints
 - [Invoicing](#invoicing) — 5 endpoints
@@ -150,8 +150,10 @@ Posts a new comment on the given task. Text is passed as `content` (HTML / plain
 **Attaching files (two ways — pick one per file):**
 1. **As an attachment** — list the file in the `files` array (`{ "uuid": "…" }`). The file is attached to the comment but not placed at a specific position in the text.
 2. **Inline in the body** — embed an anchor with `data-freelo-uuid` in `content`:
-   `<a data-freelo-uuid="{file_uuid}" href="https://app.freelo.io/file/{file_uuid}">caption</a>`
-   The server extracts the UUID from `content`, attaches the file automatically (so you do **not** also add it to `files`), and keeps the anchor in the stored `content` — so a later `GET` shows the file inside the comment body. The anchor must be an `<a>` element (not a `<div>`); the text between the tags becomes the file caption.
+   `<a data-filename="{filename}" data-freelo-uuid="{file_uuid}">caption</a>`
+   The server extracts the UUID from `content`, attaches the file automatically (so you do **not** also add it to `files`), and keeps the anchor in the stored `content` — so a later `GET` shows the file inside the comment body. The anchor must be an `<a>` element (not a `<div>`); the text between the tags becomes the file caption and must not be empty.
+
+   Send only those attributes — **no `href` and no `target`**. The server fills in the file metadata and adds `target` itself when it stores the comment; supplying an `href` to an app domain suppresses that and stores markup the web UI never produces. `data-filename` is optional but recommended, so stored content matches what the UI creates.
 
    ⚠️ Do not reference the same file UUID in both `content` and `files` — it would be attached twice.
 
@@ -171,7 +173,7 @@ _Request body (required)_
 - Content-Type: `application/json`
 - Schema: `object`
 - Properties:
-    - `content` **required** (string) — Comment body (HTML / plain text). **Inline file attachment:** embed an anchor to attach an uploaded file inside the body: `<a data-freelo-uuid="{file_uuid}" href="https://app.freelo.io/file/{file_uuid}">caption</a>` The UUID is extracted server-side and the file is attached automatically (do not also list it in `files`). The anchor stays in the stored content, so the file is rendered inside the comment on read. **Mention a user:** embed a span: `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>` (`id` and `mention_key` come from the user's `UserBasic` object, e.g. `GET /users/me`).
+    - `content` **required** (string) — Comment body (HTML / plain text). **Inline file attachment:** embed an anchor to attach an uploaded file inside the body: `<a data-filename="{filename}" data-freelo-uuid="{file_uuid}">caption</a>` The UUID is extracted server-side and the file is attached automatically (do not also list it in `files`). The anchor stays in the stored content, so the file is rendered inside the comment on read. Send no `href` and no `target` — the server adds the file metadata and `target` itself. **Mention a user:** embed a span: `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>` (`id` and `mention_key` come from the user's `UserBasic` object, e.g. `GET /users/me`).
     - `files` (array<FileUpload>) — Files to attach as plain attachments (not placed inline in the body). Alternative to embedding an anchor in `content` — use one mechanism per file, never both for the same UUID.
     - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
@@ -332,6 +334,42 @@ Returns the list of enum options (dropdown values) defined for an enum-typed cus
 
 ---
 
+### `POST /custom-field/add-enum-value/{task_id}`
+
+**Assign an enum option to a task (deprecated)**
+
+`operationId`: `addCustomFieldEnumValue`
+
+**Deprecated** — use `POST /custom-field/add-or-edit-enum-value` instead.
+
+Assigns an enum option of an enum-typed custom field to the given task.
+
+**Behavior notes:**
+- The custom field is passed as `customFieldUuid` (camelCase) in the body — unlike the rest
+  of the API, which uses snake_case. This inconsistency is one reason the endpoint is deprecated.
+- `value` is the **UUID of the enum option**, not the displayed string.
+
+**Parameters:**
+
+- `task_id` [path, required] (integer) — ID of the task the option is assigned to.
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `uuid` (string<uuid>) — UUID of the created value. Generated server-side when omitted.
+    - `customFieldUuid` **required** (string<uuid>)
+    - `value` **required** (string<uuid>) — UUID of the enum option.
+
+**Responses:**
+
+- `200` — Enum option assigned
+
+---
+
 ### `POST /custom-field/add-or-edit-enum-value`
 
 **Upsert enum custom-field value on a task**
@@ -401,6 +439,96 @@ _Request body (required)_
 **Responses:**
 
 - `200` — Value set
+
+---
+
+### `POST /custom-field/add-value/{task_id}`
+
+**Add a scalar custom-field value to a task (deprecated)**
+
+`operationId`: `addCustomFieldValue`
+
+**Deprecated** — use `POST /custom-field/add-or-edit-value` instead, which upserts by
+(`task_id`, `custom_field_uuid`) and does not require the caller to know whether a value exists.
+
+Creates a value of a **non-enum** custom field on the given task.
+
+**Parameters:**
+
+- `task_id` [path, required] (integer) — ID of the task the value is assigned to.
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `uuid` (string<uuid>) — UUID of the created value. Generated server-side when omitted.
+    - `custom_field_uuid` **required** (string<uuid>)
+    - `value` **required** (string)
+
+**Responses:**
+
+- `200` — Value created
+
+---
+
+### `POST /custom-field/change-enum-value/{uuid}`
+
+**Change an assigned enum option (deprecated)**
+
+`operationId`: `changeCustomFieldEnumValue`
+
+**Deprecated** — use `POST /custom-field/add-or-edit-enum-value` instead.
+
+Changes which enum option an existing custom-field value points to.
+
+**Parameters:**
+
+- `uuid` [path, required] (string<uuid>) — UUID of the custom-field value to change.
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `value` **required** (string<uuid>) — UUID of the enum option.
+
+**Responses:**
+
+- `200` — Enum option changed
+
+---
+
+### `POST /custom-field/change-value/{uuid}`
+
+**Change a scalar custom-field value (deprecated)**
+
+`operationId`: `changeCustomFieldValue`
+
+**Deprecated** — use `POST /custom-field/add-or-edit-value` instead.
+
+Changes an existing value of a **non-enum** custom field, addressed by the value's own UUID.
+
+**Parameters:**
+
+- `uuid` [path, required] (string<uuid>) — UUID of the custom-field value.
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `value` **required** (string)
+
+**Responses:**
+
+- `200` — Value changed
 
 ---
 
@@ -2127,7 +2255,7 @@ _Request body (required)_
 
 **Responses:**
 
-- `200` — Subtask created _(schema: `Subtask`)_
+- `200` — Subtask created _(schema: `SubtaskCreated`)_
 
 ---
 

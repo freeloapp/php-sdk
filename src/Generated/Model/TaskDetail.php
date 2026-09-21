@@ -39,6 +39,8 @@ class TaskDetail
         public readonly array $usersTimeEstimates = [],
         public readonly array $trackingUsers = [],
         public readonly array $relations = [],
+        public readonly mixed $copiedFromTask,
+        public readonly mixed $multiProjectTask,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -80,6 +82,8 @@ class TaskDetail
                 ? $data['tracking_users'] : [],
             relations: isset($data['relations']) && is_array($data['relations'])
                 ? $data['relations'] : [],
+            copiedFromTask: isset($data['copied_from_task']) ? $data['copied_from_task'] : null,
+            multiProjectTask: isset($data['multi_project_task']) ? $data['multi_project_task'] : null,
             data: $data,
         );
     }

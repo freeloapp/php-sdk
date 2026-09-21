@@ -20,7 +20,16 @@ info:
     ## Authentication
     Authentication is done using HTTP Basic Authentication. Use your email as username and API key as password.
     You can find the API key in [settings](https://app.freelo.io/profil/nastaveni).
-    
+
+    ## HTTP Status Codes - Handling Errors
+    Check the response HTTP status code to find out whether the request succeeded.
+
+    - `200` - everything is OK.
+    - `4xx` - the resource was not found or the action was rejected for another reason (invalid input, missing permissions, rate limit).
+    - `5xx` - error on our side.
+
+    Error responses carry a JSON body with an `error` message describing what went wrong.
+
     ## Rate Limiting
     The API enforces per-user rate limits. Because these limits may change over time, clients should read them from the response headers rather than hardcoding values.
 
@@ -41,10 +50,31 @@ info:
     - `1` = `"100"`
     
     ## Pagination
-    Pages are set via GET parameter `p` starting from 0.
-    
+    Pages are set via the GET parameter `p`, starting from 0 (`p=0` is the default and always the first page).
+
+    ```
+    /v1/archived-projects?p=1
+    ```
+
+    Paginated endpoints wrap the collection in an envelope:
+
+    ```json
+    {
+        "total": 125,
+        "count": 25,
+        "page": 1,
+        "per_page": 100,
+        "data": {}
+    }
+    ```
+
     ## Ordering
-    Use `order_by` and `order` (asc/desc) parameters where supported.
+    You can order data on many endpoints using the GET parameters `order_by` and `order`.
+    `order` is `asc` or `desc`; the allowed `order_by` values are listed with each endpoint.
+
+    ```
+    /v1/projects?order_by=name&order=asc
+    ```
 
     ## Timestamp Format
     All response and request fields with `format: date-time` are returned and accepted as
@@ -59,6 +89,42 @@ info:
     3. Convert to UTC or the desired zone afterwards.
 
     Send request `date-time` values in the same naive format and timezone.
+
+    ## Create a Task with a Special URL
+    Creating a new task can be simplified with a special URL. It opens the Freelo new-task
+    window with the fields prefilled from the URL parameters. This is a web-app URL, not an
+    API endpoint - no authentication headers are involved.
+
+    The URL always begins with `https://app.freelo.io/?createTask=true`.
+
+    | Parameter | Required | Meaning |
+    |-----------|----------|---------|
+    | `createTask` | yes | Must be `true`. |
+    | `pid` | no | ID of the project the task is added to. |
+    | `tlid` | no | ID of the tasklist the task is added to (only together with `pid`). |
+    | `tt` | no | Task name. |
+    | `tc` | no | Task content. |
+    | `st[]` | no | Subtask names. |
+    | `td` | no | Task due dates (see formats below). |
+    | `r` | no | Redirect after creation: `t` = task detail, `tl` = tasklist detail. |
+
+    Valid formats for `td`:
+
+    - `Y-m-d` - due date without time (`2021-10-04`)
+    - `Y-m-dTH:i` - due date with time (`2021-10-04T20:45`)
+    - `Y-m-dTH:i_Y-m-dTH:i` - date range from_to (`2021-10-03T20:45_2021-10-04T12:00`)
+    - `3` - floating due date (now + 3 days)
+    - `3:5` - floating date range (from now + 3 days to now + 5 days)
+
+    Examples:
+
+    ```
+    https://app.freelo.io/?createTask=true&tt=My+task&tc=My+Content
+    https://app.freelo.io/?createTask=true&st[0]=My+first+subtask&st[1]=My+second+subtask
+    https://app.freelo.io/?createTask=true&td=2021-09-30T20:45_2021-10-04T12:00
+    https://app.freelo.io/?createTask=true&td=7:10
+    https://app.freelo.io/?createTask=true&r=t
+    ```
 
   version: "1.0.0"
   contact:
@@ -3162,7 +3228,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Subtask'
+                $ref: '#/components/schemas/SubtaskCreated'
 
   # ==================== TASK LABELS ====================
   /task-labels/find-available:
@@ -3420,8 +3486,10 @@ paths:
         **Attaching files (two ways — pick one per file):**
         1. **As an attachment** — list the file in the `files` array (`{ "uuid": "…" }`). The file is attached to the comment but not placed at a specific position in the text.
         2. **Inline in the body** — embed an anchor with `data-freelo-uuid` in `content`:
-           `<a data-freelo-uuid="{file_uuid}" href="https://app.freelo.io/file/{file_uuid}">caption</a>`
-           The server extracts the UUID from `content`, attaches the file automatically (so you do **not** also add it to `files`), and keeps the anchor in the stored `content` — so a later `GET` shows the file inside the comment body. The anchor must be an `<a>` element (not a `<div>`); the text between the tags becomes the file caption.
+           `<a data-filename="{filename}" data-freelo-uuid="{file_uuid}">caption</a>`
+           The server extracts the UUID from `content`, attaches the file automatically (so you do **not** also add it to `files`), and keeps the anchor in the stored `content` — so a later `GET` shows the file inside the comment body. The anchor must be an `<a>` element (not a `<div>`); the text between the tags becomes the file caption and must not be empty.
+
+           Send only those attributes — **no `href` and no `target`**. The server fills in the file metadata and adds `target` itself when it stores the comment; supplying an `href` to an app domain suppresses that and stores markup the web UI never produces. `data-filename` is optional but recommended, so stored content matches what the UI creates.
 
            ⚠️ Do not reference the same file UUID in both `content` and `files` — it would be attached twice.
 
@@ -3447,8 +3515,8 @@ paths:
                     Comment body (HTML / plain text).
 
                     **Inline file attachment:** embed an anchor to attach an uploaded file inside the body:
-                    `<a data-freelo-uuid="{file_uuid}" href="https://app.freelo.io/file/{file_uuid}">caption</a>`
-                    The UUID is extracted server-side and the file is attached automatically (do not also list it in `files`). The anchor stays in the stored content, so the file is rendered inside the comment on read.
+                    `<a data-filename="{filename}" data-freelo-uuid="{file_uuid}">caption</a>`
+                    The UUID is extracted server-side and the file is attached automatically (do not also list it in `files`). The anchor stays in the stored content, so the file is rendered inside the comment on read. Send no `href` and no `target` — the server adds the file metadata and `target` itself.
 
                     **Mention a user:** embed a span:
                     `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>`
@@ -5036,7 +5104,7 @@ paths:
                 type: object
                 properties:
                   custom_field:
-                    $ref: '#/components/schemas/CustomField'
+                    $ref: '#/components/schemas/CustomFieldMutationResult'
 
   /custom-field/rename/{uuid}:
     post:
@@ -5077,7 +5145,7 @@ paths:
                 type: object
                 properties:
                   custom_field:
-                    $ref: '#/components/schemas/CustomField'
+                    $ref: '#/components/schemas/CustomFieldMutationResult'
 
   /custom-field/delete/{uuid}:
     delete:
@@ -5137,7 +5205,195 @@ paths:
                 type: object
                 properties:
                   custom_field:
-                    $ref: '#/components/schemas/CustomField'
+                    $ref: '#/components/schemas/CustomFieldMutationResult'
+
+  /custom-field/add-value/{task_id}:
+    post:
+      tags:
+        - Custom Fields
+      summary: Add a scalar custom-field value to a task (deprecated)
+      deprecated: true
+      description: |
+        **Deprecated** — use `POST /custom-field/add-or-edit-value` instead, which upserts by
+        (`task_id`, `custom_field_uuid`) and does not require the caller to know whether a value exists.
+
+        Creates a value of a **non-enum** custom field on the given task.
+      operationId: addCustomFieldValue
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: ID of the task the value is assigned to.
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - custom_field_uuid
+                - value
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
+                  description: UUID of the created value. Generated server-side when omitted.
+                custom_field_uuid:
+                  type: string
+                  format: uuid
+                value:
+                  type: string
+      responses:
+        '200':
+          description: Value created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field_value:
+                    $ref: '#/components/schemas/CustomFieldValue'
+
+  /custom-field/change-value/{uuid}:
+    post:
+      tags:
+        - Custom Fields
+      summary: Change a scalar custom-field value (deprecated)
+      deprecated: true
+      description: |
+        **Deprecated** — use `POST /custom-field/add-or-edit-value` instead.
+
+        Changes an existing value of a **non-enum** custom field, addressed by the value's own UUID.
+      operationId: changeCustomFieldValue
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: UUID of the custom-field value.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  type: string
+      responses:
+        '200':
+          description: Value changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field_value:
+                    $ref: '#/components/schemas/CustomFieldValue'
+
+  /custom-field/add-enum-value/{task_id}:
+    post:
+      tags:
+        - Custom Fields
+      summary: Assign an enum option to a task (deprecated)
+      deprecated: true
+      description: |
+        **Deprecated** — use `POST /custom-field/add-or-edit-enum-value` instead.
+
+        Assigns an enum option of an enum-typed custom field to the given task.
+
+        **Behavior notes:**
+        - The custom field is passed as `customFieldUuid` (camelCase) in the body — unlike the rest
+          of the API, which uses snake_case. This inconsistency is one reason the endpoint is deprecated.
+        - `value` is the **UUID of the enum option**, not the displayed string.
+      operationId: addCustomFieldEnumValue
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: ID of the task the option is assigned to.
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customFieldUuid
+                - value
+              properties:
+                uuid:
+                  type: string
+                  format: uuid
+                  description: UUID of the created value. Generated server-side when omitted.
+                customFieldUuid:
+                  type: string
+                  format: uuid
+                value:
+                  type: string
+                  format: uuid
+                  description: UUID of the enum option.
+      responses:
+        '200':
+          description: Enum option assigned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field_value:
+                    $ref: '#/components/schemas/CustomFieldValue'
+
+  /custom-field/change-enum-value/{uuid}:
+    post:
+      tags:
+        - Custom Fields
+      summary: Change an assigned enum option (deprecated)
+      deprecated: true
+      description: |
+        **Deprecated** — use `POST /custom-field/add-or-edit-enum-value` instead.
+
+        Changes which enum option an existing custom-field value points to.
+      operationId: changeCustomFieldEnumValue
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: UUID of the custom-field value to change.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - value
+              properties:
+                value:
+                  type: string
+                  format: uuid
+                  description: UUID of the enum option.
+      responses:
+        '200':
+          description: Enum option changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  custom_field_value:
+                    $ref: '#/components/schemas/CustomFieldValue'
 
   /custom-field/add-or-edit-value:
     post:
@@ -6759,6 +7015,56 @@ components:
             the relations are simply omitted. `GET /task/{task_id}/relations` returns 403 in that case.
           items:
             $ref: '#/components/schemas/TaskRelation'
+        copied_from_task:
+          $ref: '#/components/schemas/CopiedFromTask'
+        multi_project_task:
+          $ref: '#/components/schemas/MultiProjectTask'
+
+    CopiedFromTask:
+      type: object
+      nullable: true
+      description: Origin task this task was copied from (template copy or multi-project copy); `null` otherwise.
+      properties:
+        id:
+          type: integer
+        project:
+          type: object
+          properties:
+            id:
+              type: integer
+            is_template:
+              type: boolean
+              description: Whether the origin project is a template (or a deleted project that was one).
+
+    MultiProjectTask:
+      type: object
+      nullable: true
+      description: |
+        Mapping of the task across the projects it is assigned to. `null` when the task is a
+        child instance of a multi-project task — the block is only rendered on the parent.
+      properties:
+        is_multi_project:
+          type: boolean
+          description: Whether the task lives in more than one project.
+        assigned_to:
+          type: array
+          description: One entry per project the task is assigned to, including the root task.
+          items:
+            type: object
+            properties:
+              project:
+                $ref: '#/components/schemas/ProjectBasic'
+              tasklist:
+                $ref: '#/components/schemas/TasklistBasic'
+              task:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  sorting_id:
+                    type: integer
 
     SubtaskCreate:
       type: object
@@ -6803,6 +7109,53 @@ components:
             notification recipients even though they triggered the action. Useful for
             automations acting under your own token. Only takes effect if you are
             otherwise a subscriber/worker/tracking user of the target.
+
+    SubtaskCreated:
+      type: object
+      description: |
+        Shape returned when a subtask is created. It is narrower than the read shape of
+        `GET /task/{task_id}/subtasks` — no project, tasklist, state or counters.
+      properties:
+        id:
+          type: integer
+        task_id:
+          type: integer
+          nullable: true
+          description: ID of the underlying full task; `null` for a simple checklist item (taskcheck).
+        name:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
+          nullable: true
+        due_date_end:
+          type: string
+          format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
+          nullable: true
+        worker:
+          $ref: '#/components/schemas/UserBasic'
+        priority_enum:
+          type: string
+          nullable: true
+        labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskLabel'
+        comment:
+          type: object
+          nullable: true
+          properties:
+            content:
+              type: string
+        tracking_users:
+          type: array
+          description: Followers of the subtask.
+          items:
+            $ref: '#/components/schemas/UserBasic'
 
     Subtask:
       type: object
@@ -7232,7 +7585,15 @@ components:
           description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
           example: '2026-04-24T11:12:38'
         author:
-          $ref: '#/components/schemas/UserBasic'
+          type: object
+          description: |
+            The author of the notification. Unlike everywhere else in the API, the user's name is
+            exposed here as `name`, not as `fullname`.
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
         who:
           $ref: '#/components/schemas/UserBasic'
         is_unread:
@@ -7275,6 +7636,43 @@ components:
             filename:
               type: string
             caption:
+              type: string
+        file_comment:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+        project_link:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        project_link_comment:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+        multi_notification:
+          type: array
+          nullable: true
+          description: Some notifications carry information about more than one action (e.g. several new comments).
+          items:
+            type: string
+        work_deleted:
+          type: object
+          nullable: true
+          description: Present only on the deleted-work notification; describes the work that was removed.
+          properties:
+            minutes:
+              type: integer
+            cost:
+              $ref: '#/components/schemas/Currency'
+            note:
               type: string
         more_comments:
           type: boolean
@@ -7431,6 +7829,33 @@ components:
           type: integer
         name:
           type: string
+        date_add:
+          type: string
+          format: date-time
+          description: 'Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.'
+          example: '2026-04-24T11:12:38'
+        priority:
+          type: integer
+
+    CustomFieldMutationResult:
+      type: object
+      description: |
+        Shape returned by the custom-field create / rename / restore endpoints. It differs from
+        the read shape: the type UUID is exposed as `type`, not as `custom_fields_types_uuid`.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          format: uuid
+          description: UUID of the custom-field type (see `GET /custom-field/get-types`).
+        project_id:
+          type: integer
+        author_id:
+          type: integer
         date_add:
           type: string
           format: date-time
