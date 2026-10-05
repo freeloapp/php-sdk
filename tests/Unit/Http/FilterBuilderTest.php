@@ -226,7 +226,7 @@ class FilterBuilderTest extends TestCase
             ->onlyUnread()
             ->build();
 
-        $this->assertSame(['only_unread' => true], $filters);
+        $this->assertSame(['is_only_unread' => true], $filters);
     }
 
     public function testCustom(): void
@@ -429,7 +429,7 @@ class FilterBuilderTest extends TestCase
             ->notificationTypes($types)
             ->build();
 
-        $this->assertSame(['notification_types' => $types], $filters);
+        $this->assertSame(['notifications_types' => $types], $filters);
     }
 
     public function testEventTypes(): void
