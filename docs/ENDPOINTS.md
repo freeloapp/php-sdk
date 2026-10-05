@@ -175,7 +175,7 @@ _Request body (required)_
 - Properties:
     - `content` **required** (string) — Comment body (HTML / plain text). **Inline file attachment:** embed an anchor to attach an uploaded file inside the body: `<a data-filename="{filename}" data-freelo-uuid="{file_uuid}">caption</a>` The UUID is extracted server-side and the file is attached automatically (do not also list it in `files`). The anchor stays in the stored content, so the file is rendered inside the comment on read. Send no `href` and no `target` — the server adds the file metadata and `target` itself. **Mention a user:** embed a span: `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>` (`id` and `mention_key` come from the user's `UserBasic` object, e.g. `GET /users/me`).
     - `files` (array<FileUpload>) — Files to attach as plain attachments (not placed inline in the body). Alternative to embedding an anchor in `content` — use one mechanism per file, never both for the same UUID.
-    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target. If this call creates the task's description (the task has no comments yet), it behaves as on `POST /task/{task_id}/description`: it only keeps your existing unread notifications on the task, and the description does not notify you.
 
 **Responses:**
 
@@ -3180,6 +3180,7 @@ _Request body (required)_
 - Properties:
     - `content` **required** (string)
     - `files` (array<FileUpload>)
+    - `notify_author` (boolean) — On the **first** call (the one that creates the description), keeps the authenticated caller's existing unread notifications on the task instead of clearing them because they wrote the description. It never creates a notification — the description itself is not announced to its own author. On later calls (the description already exists) it has the usual meaning: the caller is kept among the recipients of the description-edit notification.
 
 **Responses:**
 
@@ -3257,6 +3258,7 @@ _Request body_
     - `work_reports_action` (string enum: move_to_target_project|keep_on_origin_project)
     - `custom_fields_action` (string enum: nothing|delete_what_cant_be_keep|move_to_comments_what_cant_be_keep|delete_all|move_to_comments_all)
     - `multi_project_task` (object) — Optional multi-project task context for moving a specific project instance
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you already follow the task or the target tasklist — following the task is enough, and if the move takes it out of your reach you get the "moved away" variant that does not name the destination. Ignored when `multi_project_task.source_tasklist_id` points at a child task's tasklist — that flow moves the child within its own project and emits no move notification.
 
 **Responses:**
 
@@ -4198,6 +4200,8 @@ Updates minutes, cost, date, note, or re-targets the report at a different task.
 - `task_id` can be changed to **re-parent** the report to a different task — ACL is re-checked against the new task.
 - ACL rules: the report author and the project owner/commander can edit; other users get `NotFoundException` (hiding existence).
 - If the report's parent project has been marked as invoiced, edits may be blocked — see `/issued-invoice/{id}/mark-as-invoiced`.
+- Omitted fields keep their stored value. `minutes` must be an integer or an integer-valued
+  string; any other value is rejected with `400`, it is never silently stored as `0`.
 
 **Parameters:**
 

@@ -2532,6 +2532,18 @@ paths:
                     source_tasklist_id:
                       type: integer
                       description: ID of the source tasklist identifying which project instance to move
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    When true, the authenticated caller (the action author) is kept in the
+                    notification recipients even though they triggered the action. Useful for
+                    automations acting under your own token. Only takes effect if you already
+                    follow the task or the target tasklist — following the task is enough, and if
+                    the move takes it out of your reach you get the "moved away" variant that does
+                    not name the destination. Ignored when
+                    `multi_project_task.source_tasklist_id` points at a child task's tasklist —
+                    that flow moves the child within its own project and emits no move notification.
       responses:
         '200':
           description: Successful response
@@ -2812,6 +2824,16 @@ paths:
                   type: array
                   items:
                     $ref: '#/components/schemas/FileUpload'
+                notify_author:
+                  type: boolean
+                  default: false
+                  description: >-
+                    On the **first** call (the one that creates the description), keeps the
+                    authenticated caller's existing unread notifications on the task instead of
+                    clearing them because they wrote the description. It never creates a
+                    notification — the description itself is not announced to its own author.
+                    On later calls (the description already exists) it has the usual meaning:
+                    the caller is kept among the recipients of the description-edit notification.
       responses:
         '200':
           description: Description updated
@@ -3535,6 +3557,9 @@ paths:
                     notification recipients even though they triggered the action. Useful for
                     automations acting under your own token. Only takes effect if you are
                     otherwise a subscriber/worker/tracking user of the target.
+                    If this call creates the task's description (the task has no comments yet),
+                    it behaves as on `POST /task/{task_id}/description`: it only keeps your existing
+                    unread notifications on the task, and the description does not notify you.
       responses:
         '200':
           description: Comment created
@@ -4090,6 +4115,8 @@ paths:
         - `task_id` can be changed to **re-parent** the report to a different task — ACL is re-checked against the new task.
         - ACL rules: the report author and the project owner/commander can edit; other users get `NotFoundException` (hiding existence).
         - If the report's parent project has been marked as invoiced, edits may be blocked — see `/issued-invoice/{id}/mark-as-invoiced`.
+        - Omitted fields keep their stored value. `minutes` must be an integer or an integer-valued
+          string; any other value is rejected with `400`, it is never silently stored as `0`.
       operationId: editWorkReport
       parameters:
         - name: work_report_id
