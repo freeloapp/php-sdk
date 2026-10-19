@@ -175,7 +175,7 @@ _Request body (required)_
 - Properties:
     - `content` **required** (string) — Comment body (HTML / plain text). **Inline file attachment:** embed an anchor to attach an uploaded file inside the body: `<a data-filename="{filename}" data-freelo-uuid="{file_uuid}">caption</a>` The UUID is extracted server-side and the file is attached automatically (do not also list it in `files`). The anchor stays in the stored content, so the file is rendered inside the comment on read. Send no `href` and no `target` — the server adds the file metadata and `target` itself. **Mention a user:** embed a span: `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>` (`id` and `mention_key` come from the user's `UserBasic` object, e.g. `GET /users/me`).
     - `files` (array<FileUpload>) — Files to attach as plain attachments (not placed inline in the body). Alternative to embedding an anchor in `content` — use one mechanism per file, never both for the same UUID.
-    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target. If this call creates the task's description (the task has no comments yet), it behaves as on `POST /task/{task_id}/description`: it only keeps your existing unread notifications on the task, and the description does not notify you.
 
 **Responses:**
 
@@ -1144,7 +1144,7 @@ Paginated list of notifications addressed to the authenticated caller.
 - Notifications are **always scoped to the caller** — there is no way to read another user's notifications through this endpoint.
 - `users_ids[]` filters by **authors** of the notification-triggering events, not recipients.
 - `teams_uuids[]` filters by the team context of the notification (e.g. all notifications from Team X).
-- `only_unread=true` is useful for badge counters.
+- `is_only_unread=1` is useful for badge counters.
 - Default order: `date_add desc` (newest first).
 
 **Parameters:**
@@ -1153,8 +1153,8 @@ Paginated list of notifications addressed to the authenticated caller.
 - `users_ids[]` [query] (array<integer>) — Authors of notifications
 - `teams_uuids[]` [query] (array<string<uuid>>)
 - `order` [query] (string enum: asc|desc)
-- `notification_types[]` [query] (array<string>)
-- `only_unread` [query] (integer enum: 0|1) — Only return unread notifications. Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default.
+- `notifications_types[]` [query] (array<string>)
+- `is_only_unread` [query] (integer enum: 0|1) — Only return unread notifications. Pass `1` to enable, `0` to disable — string values like `true`/`false` are not accepted and silently fall back to the default.
 - `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
 - `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
@@ -2789,7 +2789,7 @@ Paginated global task search. Combines fulltext search (via Elasticsearch), stru
 - `state_id` [query] (integer) — ID of the tasks state
 - `projects_ids[]` [query] (array<integer>) — Filter tasks by project IDs. If empty, tasks from all accessible projects are returned.
 - `tasklists_ids[]` [query] (array<integer>) — Filter tasks by tasklist IDs
-- `order_by` [query] (string enum: priority|name|date_add|date_edited_at|due_date) — When `due_date`, tasks without a due date are always last; all-day tasks sort at the start of their day (00:00). Results are tie-broken by task id for stable pagination.
+- `order_by` [query] (string enum: priority|name|date_add|date_edited_at|due_date|worker|tasklist|project|priority_enum) — `priority` is the manual position of the task in its tasklist; `priority_enum` orders by priority high → medium → low (reversed for `desc`). `worker` orders by the assignee's full name, `tasklist` and `project` by the name of the task's tasklist and project. When `due_date`, tasks without a due date are always last; all-day tasks sort at the start of their day (00:00). Tasks without an assignee (`worker`) or without a priority (`priority_enum`) are always last too. Results are tie-broken by task id for stable pagination.
 - `order` [query] (string enum: asc|desc)
 - `with_labels[]` [query] (array<string>) — Filter tasks that have at least one of the specified labels (case insensitive). Can be combined with with_label.
 - `with_label` [query] (string) — Filter tasks by a single label name (case insensitive). If with_labels[] is also provided, this value is merged into that array.
@@ -3180,6 +3180,7 @@ _Request body (required)_
 - Properties:
     - `content` **required** (string)
     - `files` (array<FileUpload>)
+    - `notify_author` (boolean) — On the **first** call (the one that creates the description), keeps the authenticated caller's existing unread notifications on the task instead of clearing them because they wrote the description. It never creates a notification — the description itself is not announced to its own author. On later calls (the description already exists) it has the usual meaning: the caller is kept among the recipients of the description-edit notification.
 
 **Responses:**
 
@@ -3257,6 +3258,7 @@ _Request body_
     - `work_reports_action` (string enum: move_to_target_project|keep_on_origin_project)
     - `custom_fields_action` (string enum: nothing|delete_what_cant_be_keep|move_to_comments_what_cant_be_keep|delete_all|move_to_comments_all)
     - `multi_project_task` (object) — Optional multi-project task context for moving a specific project instance
+    - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you already follow the task or the target tasklist — following the task is enough, and if the move takes it out of your reach you get the "moved away" variant that does not name the destination. Ignored when `multi_project_task.source_tasklist_id` points at a child task's tasklist — that flow moves the child within its own project and emits no move notification.
 
 **Responses:**
 
@@ -4198,6 +4200,8 @@ Updates minutes, cost, date, note, or re-targets the report at a different task.
 - `task_id` can be changed to **re-parent** the report to a different task — ACL is re-checked against the new task.
 - ACL rules: the report author and the project owner/commander can edit; other users get `NotFoundException` (hiding existence).
 - If the report's parent project has been marked as invoiced, edits may be blocked — see `/issued-invoice/{id}/mark-as-invoiced`.
+- Omitted fields keep their stored value. `minutes` must be an integer or an integer-valued
+  string; any other value is rejected with `400`, it is never silently stored as `0`.
 
 **Parameters:**
 
