@@ -224,10 +224,13 @@ class FilterBuilder
 
     /**
      * Only unread notifications
+     *
+     * Sent as `is_only_unread`, the name the API reads — the spec's
+     * `only_unread` is ignored by it.
      */
     public function onlyUnread(bool $value = true): self
     {
-        $this->filters['only_unread'] = $value;
+        $this->filters['is_only_unread'] = $value;
         return $this;
     }
 
@@ -336,11 +339,14 @@ class FilterBuilder
     /**
      * Filter by notification types
      *
+     * Sent as `notifications_types`, the name the API reads — the spec's
+     * `notification_types` is ignored by it.
+     *
      * @param string[] $types
      */
     public function notificationTypes(array $types): self
     {
-        $this->filters['notification_types'] = $types;
+        $this->filters['notifications_types'] = $types;
         return $this;
     }
 
