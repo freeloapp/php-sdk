@@ -7,19 +7,22 @@
 
 This digest exists to give LLMs and humans fast access to endpoint semantics (use cases, behavior notes, side effects) without parsing the full spec. Regenerated from `.openapi/freelo-api.yaml` on every `composer generate`.
 
-Total endpoints: **131** across 19 tag(s).
+Total endpoints: **141** across 22 tag(s).
 
 ## Table of contents
 
 - [Comments](#comments) — 4 endpoints
 - [Custom Fields](#custom-fields) — 18 endpoints
+- [Directories](#directories) — 4 endpoints
 - [Events](#events) — 1 endpoint
 - [Files](#files) — 4 endpoints
 - [Invoicing](#invoicing) — 5 endpoints
+- [Links](#links) — 3 endpoints
 - [Notes](#notes) — 4 endpoints
 - [Notifications](#notifications) — 3 endpoints
 - [Pinned Items](#pinned-items) — 3 endpoints
 - [Project Labels](#project-labels) — 5 endpoints
+- [Project files](#project-files) — 3 endpoints
 - [Projects](#projects) — 19 endpoints
 - [Search](#search) — 1 endpoint
 - [States](#states) — 1 endpoint
@@ -105,6 +108,7 @@ Overwrites the text and / or attachments of an existing comment.
 **Behavior notes:**
 - `files` replaces the full attachment set — pass the complete list of file UUIDs you want attached, not a delta.
 - Files can also be attached inline via a `<a data-freelo-uuid="{file_uuid}">…</a>` anchor in `content` (see `POST /task/{id}/comments`). Use one mechanism per file, never both for the same UUID.
+- Files already attached to this comment may be listed again. Any other file must be your own fresh upload — a reused, foreign, unknown or archived-attachment UUID returns **400** and the comment is left unchanged.
 - ACL: only the comment's author can edit (or project owner / commander depending on role rules). Otherwise 404 `NotFoundException` is returned (not 403, to avoid leaking the existence of inaccessible comments).
 - The method used is `POST` for historical reasons, not `PUT`/`PATCH`.
 
@@ -126,6 +130,7 @@ _Request body (required)_
 **Responses:**
 
 - `200` — Comment updated _(schema: `Comment`)_
+- `400` — `files` that cannot be attached (see the `FileCannotBeAttached` response), or a `files[].download_url` that was refused or could not be downloaded: it must be a publicly reachable http(s) URL on port 80/443; redirects, Freelo's own servers and private or local addresses are not fetched, and the file must not exceed 1945 MiB. The error message states the cause. _(schema: `ErrorResponse`)_
 
 ---
 
@@ -156,6 +161,7 @@ Posts a new comment on the given task. Text is passed as `content` (HTML / plain
    Send only those attributes — **no `href` and no `target`**. The server fills in the file metadata and adds `target` itself when it stores the comment; supplying an `href` to an app domain suppresses that and stores markup the web UI never produces. `data-filename` is optional but recommended, so stored content matches what the UI creates.
 
    ⚠️ Do not reference the same file UUID in both `content` and `files` — it would be attached twice.
+Each uploaded file UUID can be attached **only once** and **only by the user who uploaded it**. A reused, foreign or unknown UUID (in `files` or in an inline anchor) returns **400** and nothing is saved — upload the file again via `POST /file/upload`.
 
 **Mentioning users:**
 Embed a mention in `content` as an HTML span:
@@ -180,6 +186,7 @@ _Request body (required)_
 **Responses:**
 
 - `200` — Comment created _(schema: `Comment`)_
+- `400` — `files` that cannot be attached (see the `FileCannotBeAttached` response), or a `files[].download_url` that was refused or could not be downloaded: it must be a publicly reachable http(s) URL on port 80/443; redirects, Freelo's own servers and private or local addresses are not fetched, and the file must not exceed 1945 MiB. The error message states the cause. _(schema: `ErrorResponse`)_
 
 ---
 
@@ -718,6 +725,157 @@ Reverses a prior `/custom-field/delete`. Previously preserved values become visi
 
 ---
 
+## Directories
+
+### `POST /directories`
+
+**Create a directory in the Files section**
+
+`operationId`: `createDirectory`
+
+Creates a directory in the project Files section — in the project root or inside another directory (`directory_uuid`). Returns the created item in the same shape as an item of `GET /all-docs-and-files`.
+
+**Use cases:**
+- Structuring project documents like a disk (e.g. *Clients › ABC › Contracts*)
+- Preparing a target directory before uploading or linking documents into it
+
+**Behavior notes:**
+- The directory is appended at the end of its parent directory (`order`).
+- Directory nesting is limited to 50 levels (a directory in the project root is level 1). Creating a directory below level 50 returns 409.
+- The parent directory must be active and belong to the same project, otherwise 404. A directory inside a deleted directory counts as deleted.
+- Archived projects are read-only for new items — returns 403. Guest accounts have no access to the Files section — returns 403.
+- Unknown body fields are rejected with 400.
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `DirectoryCreateRequest`
+
+**Responses:**
+
+- `201` — Directory created _(schema: `DocsAndFilesItem`)_
+- `400` — Invalid request body _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section, or the project is archived _(schema: `ErrorResponse`)_
+- `404` — Project or parent directory not found _(schema: `ErrorResponse`)_
+- `409` — The directory would be nested deeper than 50 levels _(schema: `ErrorResponse`)_
+
+---
+
+### `DELETE /directories/{directory_uuid}`
+
+**Permanently delete a directory**
+
+`operationId`: `deleteDirectory`
+
+**Permanently deletes the directory. This cannot be undone via the API.**
+
+**Use cases:**
+- Removing an empty directory that is no longer needed
+- Removing a directory that still contains items (`force=true`)
+
+**Behavior notes:**
+- A directory that is not empty is rejected with 409 by default; the error says how many items it contains. Repeat the request with `force=true` to delete it anyway.
+- With `force=true` the directory is deleted even when it is not empty. Its items are not deleted one by one. **This cannot be undone.**
+- The whole content of a deleted directory (subdirectories, files, links, notes) stops being available through the API — it is not returned by `GET /all-docs-and-files`, by detail, edit or download (`GET /file/{file_uuid}` returns 404).
+- Deleting is allowed in archived projects too.
+- Deleting an already deleted directory returns 404.
+- A directory inside a deleted directory counts as deleted — returns 404.
+- Guest accounts have no access to the Files section — returns 403.
+
+**Parameters:**
+
+- `directory_uuid` [path, required] (string<uuid>)
+- `force` [query] (boolean) — `true` deletes a directory even when it is not empty. This cannot be undone.
+
+**Responses:**
+
+- `200` — Directory deleted _(schema: `SuccessResponse`)_
+- `400` — Invalid directory UUID or `force` value _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section _(schema: `ErrorResponse`)_
+- `404` — Directory not found or already deleted _(schema: `ErrorResponse`)_
+- `409` — The directory is not empty and `force=true` was not sent _(schema: `ErrorResponse`)_
+
+---
+
+### `GET /directories/{directory_uuid}`
+
+**Get a directory**
+
+`operationId`: `getDirectory`
+
+Returns a directory of the project Files section including `items_count` — the number of its direct items.
+
+**Use cases:**
+- Checking how many items a directory holds before deleting it
+- Resolving a directory UUID to its name and parent
+
+**Behavior notes:**
+- To list the content of the directory use `GET /all-docs-and-files`.
+- A deleted directory, or a directory inside a deleted directory, returns 404.
+- Guest accounts have no access to the Files section — returns 403.
+
+**Parameters:**
+
+- `directory_uuid` [path, required] (string<uuid>)
+
+**Responses:**
+
+- `200` — Directory _(schema: `DocsAndFilesItem`)_
+- `400` — Invalid directory UUID _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section _(schema: `ErrorResponse`)_
+- `404` — Directory not found _(schema: `ErrorResponse`)_
+
+---
+
+### `PATCH /directories/{directory_uuid}`
+
+**Rename, recolor or move a directory**
+
+`operationId`: `editDirectory`
+
+Updates only the fields present in the body. Moving = sending `directory_uuid` (`null` moves the directory to the project root).
+
+**Use cases:**
+- Renaming a directory when the project changes
+- Restructuring the Files section without recreating directories
+
+**Behavior notes:**
+- The directory is moved together with its whole content, within the same project only.
+- Moving a directory into itself or into one of its subdirectories returns 409.
+- The resulting structure may not be deeper than 50 levels (the moved directory counts with its own subdirectories), otherwise 409.
+- A directory inside a deleted directory counts as deleted — returns 404.
+- The target directory must be active and belong to the same project, otherwise 404.
+- A moved directory is appended at the end of the target directory.
+- Editing is allowed in archived projects (same as in the app). An empty body changes nothing.
+- Unknown body fields are rejected with 400.
+
+**Parameters:**
+
+- `directory_uuid` [path, required] (string<uuid>)
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `DirectoryEditRequest`
+
+**Responses:**
+
+- `200` — Updated directory _(schema: `DocsAndFilesItem`)_
+- `400` — Invalid request body _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section _(schema: `ErrorResponse`)_
+- `404` — Directory or target directory not found _(schema: `ErrorResponse`)_
+- `409` — Move into its own subdirectory, or nesting deeper than 50 levels _(schema: `ErrorResponse`)_
+
+---
+
 ## Events
 
 ### `GET /events`
@@ -769,41 +927,53 @@ Global listing of **all four types of project assets** — directories, links, f
 **Use cases:**
 - Building a cross-project "library" search
 - Export / backup of non-task assets
+- Content of one directory: `projects_ids[]=X&directory_uuid=<uuid>` (or `directory_uuid=root` for the project root)
+- Finding a document by name: `search=contract`
 
 **Behavior notes:**
 - ACL-filtered by the caller's visible projects.
 - Without `projects_ids[]`, spans every project the caller can see.
+- Guest accounts do not see directories, links and files; without the notes permission they do not see notes either.
+- Attachments of comments (task, note or file discussions) are never listed.
+- Items inside a deleted directory (at any depth) are not listed.
+- `search` matches a case- and accent-insensitive substring of the name of a directory, link or note, and of the displayed `name` of a file (its caption, or `original_filename` when the caption is empty). It searches the whole project; together with `directory_uuid` only the direct items of that directory.
+- Changed in this version (backward compatible): `name` is now filled for files; new field `original_filename`.
 
 **Parameters:**
 
 - `projects_ids[]` [query] (array<integer>)
 - `type` [query] (string enum: directory|link|file|document)
+- `directory_uuid` [query] (string) — Lists only the direct items of this directory; `root` lists the items in the project root. Requires exactly one `projects_ids[]`.
+- `search` [query] (string) — Case- and accent-insensitive substring of the item `name`; for a file its caption, or `original_filename` when the caption is empty. At most 255 characters.
 - `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
 - `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
 
 **Responses:**
 
+- `400` — Empty or over-long (more than 255 characters) `search`, empty or invalid `directory_uuid`, or `directory_uuid` without exactly one `projects_ids[]` _(schema: `ErrorResponse`)_
+- `404` — The `directory_uuid` directory does not exist, is deleted, lies inside a deleted directory, or does not belong to the project _(schema: `ErrorResponse`)_
 - `200` — Successful response
 
 ---
 
 ### `POST /file/upload`
 
-**Upload a file (multipart)**
+**Upload a file as an attachment (multipart)**
 
 `operationId`: `uploadFile`
 
-Uploads a single file (**max 100 MB**). Returns a UUID that can be referenced from other endpoints.
+**Prepares an attachment** for a comment, task description or note — the file is **not** stored in the project's Files section and does not appear in `GET /all-docs-and-files`. To store a file in the Files section use `POST /project-files`.
+
+Uploads a single file (**max 1945 MiB**). Returns a UUID that can be referenced from other endpoints.
 
 **Use cases:**
 - Attaching an image to a comment: embed `<a data-freelo-uuid="{uuid}">caption</a>` in the comment content
 - Attaching files to a task description via `POST /task/{id}/description`
-- Pinning files to a project
 
 **Behavior notes:**
 - The upload does **not** automatically attach the file anywhere — it produces a UUID you then reference.
 - `multipart/form-data` is mandatory; JSON body is rejected.
-- Size / content-type checks come from `FileUploadChecker`; oversize or forbidden types return 400.
+- A missing file or an upload error returns 400.
 
 **Request body:**
 
@@ -826,14 +996,18 @@ _Request body (required)_
 
 `operationId`: `deleteDocOrFileByUuid`
 
-Deletes a single **file** or **document/note** identified by its UUID. The endpoint resolves the resource type from the UUID automatically and soft-deletes it.
+**Deletes a single file or document/note identified by its UUID. This cannot be undone via the API.**
 
 **Use cases:**
 - Removing a file or note surfaced by the listing, by UUID alone
 
 **Behavior notes:**
-- Soft-delete only — the resource is marked deleted, not physically removed.
-- Returns 404 if no file or document matches the UUID, or the caller has no access to it.
+- The resource type is resolved from the UUID automatically.
+- A deleted file or note stops being available through the API — it is not returned by `GET /all-docs-and-files` and `GET /file/{file_uuid}` returns 404.
+- Deleting an already deleted file or note returns 200 again, unless it lies inside a deleted directory — then 404.
+- Attachments of tasks, task comments, notes and file or link discussions cannot be deleted here — returns 404.
+- Returns 404 if no file or document matches the UUID, it lies inside a deleted directory, or the caller has no access to it.
+- Guest accounts have no access to the Files section and to notes — returns 403.
 
 **Parameters:**
 
@@ -842,7 +1016,8 @@ Deletes a single **file** or **document/note** identified by its UUID. The endpo
 **Responses:**
 
 - `200` — File or document deleted _(schema: `SuccessResponse`)_
-- `404` — No file or document found for the given UUID
+- `403` — The caller's role (guest account) has no access to the Files section or to notes _(schema: `ErrorResponse`)_
+- `404` — No deletable file or document found for the given UUID (attachments are not deletable here), it lies inside a deleted directory, or it is not accessible
 
 ---
 
@@ -860,7 +1035,8 @@ Streams the raw file content (any MIME type) identified by UUID. ACL-checked: th
 
 **Behavior notes:**
 - Content-Type is derived from the stored MIME type. Content-Disposition header carries the original filename.
-- Returns 404 if the file does not exist, was deleted, or the caller has no access to any project it is attached to.
+- Returns 404 if the file does not exist, was deleted, is an attachment of a deleted file or link, lies inside a deleted directory (also an attachment of a note, file or link inside it), or the caller has no access to any project it is attached to.
+- Guest accounts have no access to the Files section and to notes: a Files-section file, an attachment of a file or link discussion and a note attachment return 403. Attachments of tasks and task comments stay downloadable for guests.
 
 **Parameters:**
 
@@ -869,6 +1045,8 @@ Streams the raw file content (any MIME type) identified by UUID. ACL-checked: th
 **Responses:**
 
 - `200` — File content
+- `403` — The file belongs to the Files section or to a note and the caller's role (guest account) has no access to them _(schema: `ErrorResponse`)_
+- `404` — File not found, deleted, an attachment of a deleted file or link, inside a deleted directory, or not accessible _(schema: `ErrorResponse`)_
 
 ---
 
@@ -1011,6 +1189,130 @@ Returns a paginated list of invoice draft groups ("issued invoices") — each re
 
 ---
 
+## Links
+
+### `POST /links`
+
+**Add a link to the Files section**
+
+`operationId`: `createLink`
+
+Stores a link to an external document (Google Doc, Drive folder, Dropbox, OneDrive or any URL) in the project Files section — in the project root or inside a directory (`directory_uuid`). Freelo downloads nothing, it only keeps the link. Returns the created item in the same shape as an item of `GET /all-docs-and-files`.
+
+**Use cases:**
+- Making documents that live elsewhere reachable from the project
+- Putting a link next to related documents in a directory
+
+**Behavior notes:**
+- `link` must be an absolute http(s) URL with a host. International domain names and diacritics are allowed and stored as sent.
+- `link_type` is derived from `link` and must not be sent; sending it (like any other unknown field) returns 400.
+- The link is appended at the end of its directory (`order`).
+- The target directory must be active and belong to the same project, otherwise 404. A directory inside a deleted directory counts as deleted.
+- Archived projects are read-only for new items — returns 403. Guest accounts have no access to the Files section — returns 403.
+
+**Link type detection** (`link_type` is derived from `link`, never sent):
+
+| URL | `link_type` |
+|---|---|
+| `docs.google.com/document/…` | `google_doc` |
+| `docs.google.com/spreadsheets/…` | `google_sheet` |
+| `docs.google.com/presentation/…` | `google_slide` |
+| other `docs.google.com/…`, `drive.google.com/…` | `google_general` |
+| `dropbox.com` and its subdomains | `dropbox` |
+| `1drv.ms`, `onedrive.live.com`, `onedrive.com`, `*.sharepoint.com` | `onedrive` |
+| anything else | `link` |
+
+Google Workspace (`/a/<domain>/…`) and multi-account (`/u/<n>/…`) prefixes are ignored. Hosts match exactly or as a subdomain (`evil-dropbox.com` is a plain `link`).
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `LinkCreateRequest`
+
+**Responses:**
+
+- `201` — Link created _(schema: `DocsAndFilesItem`)_
+- `400` — Invalid request body (including a sent `link_type`) _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section, or the project is archived _(schema: `ErrorResponse`)_
+- `404` — Project or directory not found _(schema: `ErrorResponse`)_
+
+---
+
+### `DELETE /links/{link_uuid}`
+
+**Delete a link (soft-delete)**
+
+`operationId`: `deleteLink`
+
+Soft-deletes the link — it is marked deleted, not physically removed. The API cannot restore it.
+
+**Use cases:**
+- Removing a link to a document that is no longer relevant
+
+**Behavior notes:**
+- Deleting an already deleted link returns 404.
+- A link inside a deleted directory counts as deleted — returns 404.
+- Deleting is allowed in archived projects too.
+- Guest accounts have no access to the Files section — returns 403.
+
+**Parameters:**
+
+- `link_uuid` [path, required] (string<uuid>)
+
+**Responses:**
+
+- `200` — Link deleted _(schema: `SuccessResponse`)_
+- `400` — Invalid link UUID _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section _(schema: `ErrorResponse`)_
+- `404` — Link not found or already deleted _(schema: `ErrorResponse`)_
+
+---
+
+### `PATCH /links/{link_uuid}`
+
+**Edit or move a link**
+
+`operationId`: `editLink`
+
+Updates only the fields present in the body. Moving = sending `directory_uuid` (`null` moves the link to the project root).
+
+**Use cases:**
+- Fixing the name, URL or note of a link
+- Moving a link into the directory with related documents
+
+**Behavior notes:**
+- Changing `link` recalculates `link_type` (see `POST /links`); `link_type` itself must not be sent — returns 400.
+- `note: null` removes the note. The note is sanitized like a comment.
+- A link is moved within the same project only. The target directory must be active and belong to the same project, otherwise 404.
+- A link inside a deleted directory counts as deleted — returns 404.
+- Editing is allowed in archived projects (same as in the app). An empty body changes nothing.
+- Unknown body fields are rejected with 400.
+
+**Parameters:**
+
+- `link_uuid` [path, required] (string<uuid>)
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `LinkEditRequest`
+
+**Responses:**
+
+- `200` — Updated link _(schema: `DocsAndFilesItem`)_
+- `400` — Invalid request body (including a sent `link_type`) _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section _(schema: `ErrorResponse`)_
+- `404` — Link or target directory not found _(schema: `ErrorResponse`)_
+
+---
+
 ## Notes
 
 ### `DELETE /note/{note_id}`
@@ -1069,6 +1371,19 @@ Updates an existing note's title (`name`) and / or body (`content`).
 - Overwrites content — there is no history / diff tracking exposed via the API.
 - Accepts the numeric id **or** the note `uuid` (as returned by `GET /all-docs-and-files`).
 
+**Content and attachments:**
+| Request | Result |
+|---|---|
+| `name` only (no `content` key) | Only the title changes; body and attachments stay as they are. |
+| `content` without `files` | The body is replaced; current attachments are kept with their captions. |
+| `content` with `files` | `files` is the **complete** list of attachments — attached files not listed are removed. Already attached files may be listed again. |
+| `content` with `files: []` | The body is replaced and **all attachments are removed**. Omit `files` to keep them. |
+| `content: null` | The body is cleared. Attachments follow the same rules as above (kept without `files`, replaced with `files`). |
+| `files` without `content` | Rejected with 400 — send the current `content` to keep it. |
+
+Files can also be attached inline via `<a data-freelo-uuid="{file_uuid}">caption</a>` in `content`.
+- Each uploaded file UUID can be attached **only once** and **only by the user who uploaded it**. A reused, foreign or unknown UUID (in `files` or in an inline anchor) returns **400** and nothing is saved — upload the file again via `POST /file/upload`.
+
 **Parameters:**
 
 - `note_id` [path, required] — Numeric note ID (`documents.id`) or note UUID (`documents.uuid`) — both are accepted in the same position. `GET /all-docs-and-files` returns only the UUID for notes.
@@ -1081,12 +1396,14 @@ _Request body (required)_
 - Schema: `object`
 - Properties:
     - `name` **required** (string)
-    - `content` (string)
+    - `content` (string) — New body. Omit it to change only the title. Supports inline file anchors.
+    - `files` (array<FileUpload>) — Complete list of the note's attachments; requires `content`. Omit to keep the current attachments.
     - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
 
 - `200` — Note updated _(schema: `Note`)_
+- `400`
 
 ---
 
@@ -1105,6 +1422,11 @@ Creates a project-level **note** (a Document entity internally — notes and doc
 **Behavior notes (non-obvious):**
 - Internally handled by `DocumentPresenter` — the `/note/*` paths are aliases of `/document/*`. The response shape is a Document. `name` maps to the note title, `content` to the body.
 
+**Attaching files (two ways — pick one per file):**
+1. **As an attachment** — list a file uploaded via `POST /file/upload` in `files` (`{ "uuid": "…", "caption": "…" }`), or let the server download it with `{ "download_url": "…", "filename": "…" }`. `content` may be omitted when you only attach files.
+2. **Inline in the body** — embed `<a data-freelo-uuid="{file_uuid}">caption</a>` in `content`; the file is attached automatically.
+- Each uploaded file UUID can be attached **only once** and **only by the user who uploaded it**. A reused, foreign or unknown UUID (in `files` or in an inline anchor) returns **400** and nothing is saved — upload the file again via `POST /file/upload`.
+
 **Parameters:**
 
 - `project_id` [path, required] (integer)
@@ -1117,11 +1439,13 @@ _Request body (required)_
 - Schema: `object`
 - Properties:
     - `name` **required** (string)
-    - `content` (string)
+    - `content` (string) — Note body (HTML / plain text). Supports inline file anchors `<a data-freelo-uuid="{file_uuid}">caption</a>`.
+    - `files` (array<FileUpload>) — Files to attach to the note. Use one mechanism per file — do not also embed the same UUID in `content`.
 
 **Responses:**
 
 - `200` — Note created _(schema: `Note`)_
+- `400`
 
 ---
 
@@ -1472,6 +1796,121 @@ _Request body (required)_
 **Responses:**
 
 - `200` — Successful response _(schema: `SuccessResponse`)_
+
+---
+
+## Project files
+
+### `POST /project-files`
+
+**Upload a file into the Files section (multipart)**
+
+`operationId`: `createProjectFile`
+
+**Stores the file in the project's Files section** (optionally in a directory). The file appears in `GET /all-docs-and-files`. Returns the created item in the same shape as an item of `GET /all-docs-and-files`.
+
+**Not for comment attachments — use `POST /file/upload` for that.**
+
+**Use cases:**
+- Keeping a document with the project instead of an e-mail or a shared drive
+- Uploading straight into a directory (`directory_uuid`) without moving the file afterwards
+
+**Behavior notes:**
+- Max file size is 1945 MiB. An empty file returns 400.
+- The file name may have at most 255 bytes and its extension at most 16 bytes, otherwise 400.
+- `original_filename` is the file name exactly as sent by the client. `caption` defaults to it; a caption is at most 90 characters (a longer default is shortened, a longer sent caption returns 400). `name` is the caption.
+- `filename` is the internal storage name.
+- Empty form fields count as not sent (`directory_uuid=""` = project root).
+- The target directory must be active and belong to the project, otherwise 404. A directory inside a deleted directory counts as deleted.
+- Archived projects are read-only for new items — returns 403. Guest accounts have no access to the Files section — returns 403.
+- Invalid input returns 400 before any access check (403/404).
+- Unknown form fields are rejected with 400.
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `multipart/form-data`
+- Schema: `object`
+- Properties:
+    - `file` **required** (string<binary>)
+    - `project_id` **required** (integer)
+    - `directory_uuid` (string<uuid>) — Target directory; empty or missing = project root.
+    - `caption` (string) — Defaults to the uploaded file name.
+    - `note` (string)
+    - `color` (string enum: #77787a|#15acc0|#367fee|#10aa40|#f2830b|#ca3e99|#9235e4|#e9483a|#ffffff|#e3b51e)
+
+**Responses:**
+
+- `201` — File stored in the Files section _(schema: `DocsAndFilesItem`)_
+- `400` — Missing, empty or too large file, or invalid form fields _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section, or the project is archived _(schema: `ErrorResponse`)_
+- `404` — Project or target directory not found _(schema: `ErrorResponse`)_
+
+---
+
+### `DELETE /project-files/{file_uuid}`
+
+**Delete a file of the Files section**
+
+`operationId`: `deleteProjectFile`
+
+Permanently deletes the file from the Files section. This cannot be undone via the API.
+
+**Behavior notes:**
+- Only files of the Files section are accepted — an attachment of a task, task comment, note or file or link discussion, or a temporary upload, returns 404. A file inside a deleted directory counts as deleted (404).
+- Deleting an already deleted file returns 404.
+- Allowed in archived projects. Guest accounts have no access to the Files section — returns 403.
+
+**Parameters:**
+
+- `file_uuid` [path, required] (string<uuid>)
+
+**Responses:**
+
+- `200` — File deleted _(schema: `SuccessResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section _(schema: `ErrorResponse`)_
+- `404` — File not found _(schema: `ErrorResponse`)_
+
+---
+
+### `PATCH /project-files/{file_uuid}`
+
+**Edit a file of the Files section**
+
+`operationId`: `editProjectFile`
+
+Changes the caption, note or colour of a file in the project Files section, or moves it to another directory of the same project. The file content stays as it is.
+
+**Behavior notes:**
+- Missing fields stay unchanged; `{}` returns the current state. `"note": null` removes the note.
+- `"directory_uuid": null` moves the file to the project root. Moving is limited to the file's project.
+- Only files of the Files section are accepted — an attachment of a task, task comment, note or file or link discussion, or a temporary upload, returns 404. A file inside a deleted directory counts as deleted (404).
+- The target directory must be active and belong to the project, otherwise 404.
+- Guest accounts have no access to the Files section — returns 403.
+- Allowed in archived projects, same as in the app.
+- Unknown body fields are rejected with 400.
+
+**Parameters:**
+
+- `file_uuid` [path, required] (string<uuid>)
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `ProjectFileEditRequest`
+
+**Responses:**
+
+- `200` — File edited _(schema: `DocsAndFilesItem`)_
+- `400` — Invalid request body _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No access to the project or its Files section _(schema: `ErrorResponse`)_
+- `404` — File or target directory not found _(schema: `ErrorResponse`)_
 
 ---
 
@@ -2859,6 +3298,8 @@ Creates a new task in the given tasklist. The authenticated caller becomes the t
 - The assignee (`worker`) must be one of the tasklist's `assignable-workers` (see that endpoint). A user outside the ACL scope results in `WorkerHasNoAccessToTasklistException` → 403.
 - `tracking_users_ids` defaults to the assignee + author if omitted (via `TaskDataDefaultTrackingUsersFiller`).
 - Creates a `task_created` event (→ webhooks, notifications, calendar sync).
+- Files in `comment` (`files` or inline `data-freelo-uuid` anchors) are checked before the task is created: a reused, foreign or unknown upload returns **400** and no task is created.
+- `comment.files` requires a non-empty `comment.content`; files sent without it return **400** instead of being dropped.
 
 **Parameters:**
 
@@ -2875,6 +3316,7 @@ _Request body (required)_
 **Responses:**
 
 - `200` — Task created _(schema: `TaskCreated`)_
+- `400`
 
 ---
 
@@ -2945,7 +3387,7 @@ Copies a single task out of a project template into a target tasklist. Mirrors t
 - `users_ids` is a list of template members to invite into the destination.
 - `name` and `description` override what was copied from the template. They are applied **after** the copy, so omitting them keeps the template values and the template task itself is never modified. `description` replaces the whole description (upsert, no history) — identical semantics to `POST /task/{task_id}/description`.
 - The overrides apply to the copied task only; names and descriptions of its subtasks always come from the template. Sending `null` in either field is treated the same as omitting it.
-- A malformed request — including an invalid `description.files[].download_url` — is rejected with `400` before anything is copied, so no task is created.
+- A malformed request — including an invalid `description.files[].download_url` or a reused, foreign or unknown uploaded file UUID in `description` — is rejected with `400` before anything is copied, so no task is created.
 - Because the overrides themselves run after the copy has been committed, the two failures still possible afterwards (the server cannot download a well-formed `description.files[].download_url`, or you lack permission to rename a task in the destination project) return an error **and still leave the created task behind**, carrying the template name and description. There is no idempotency key, so retrying creates a second task — check the destination tasklist first.
 
 **Parameters:**
@@ -2970,6 +3412,7 @@ _Request body (required)_
 **Responses:**
 
 - `200` — Task created
+- `400` — `files` that cannot be attached (see the `FileCannotBeAttached` response), or a `files[].download_url` that was refused or could not be downloaded: it must be a publicly reachable http(s) URL on port 80/443; redirects, Freelo's own servers and private or local addresses are not fetched, and the file must not exceed 1945 MiB. The error message states the cause. _(schema: `ErrorResponse`)_
 
 ---
 
@@ -3040,7 +3483,7 @@ Returns full task detail — metadata, labels, worker, tracking users, due dates
 
 Partially updates a task. Only the fields listed below are editable through this endpoint — any other key in the body is **silently ignored** (the facade uses `array_intersect_key` against a fixed whitelist).
 
-**Editable fields:** `name`, `description`, `worker`, `due_date`, `due_date_end`, `labels`, `priority_enum`, `tracking_users_ids`, `add_tracking_users_ids`, `remove_tracking_users_ids`.
+**Editable fields:** `name`, `description`, `worker`, `due_date`, `due_date_end`, `labels`, `priority_enum`, `tracking_users_ids`, `add_tracking_users_ids`, `remove_tracking_users_ids`. Optional flags: `notify_author`, and `collision_mode`, which reschedules tasks linked by blocking relations (see below).
 
 **Use cases:**
 - Reassigning a task
@@ -3058,7 +3501,20 @@ Partially updates a task. Only the fields listed below are editable through this
   Mixing `tracking_users_ids` (replace) with add/remove in one call is accepted but the final state is determined by the facade's order of operations — keep it to one shape per call to be deterministic.
 - **Labels must reference existing labels or be fully-formed new label DTOs** — the behavior matches the task-labels add-to-task semantics.
 - **`description` overwrites the whole description** (upsert, no append, no history) — identical semantics to `POST /task/{task_id}/description`. Omitting the key leaves the current description untouched; the task edit and the description update run in a single transaction.
+- **`due_date` and `due_date_end` are replaced as a pair.** Sending either key sets both, and the omitted one is treated as `null`: sending only `due_date` drops the end (single-day deadline), sending only `due_date_end` turns it into a single-day deadline on that date. To change one boundary of a range, send both. Omitting both keys leaves the deadline untouched.
+- Description files are checked before anything is changed: a reused, foreign or unknown upload returns **400** and neither the task nor its description is edited. Files already attached to the description may be listed again.
 - The endpoint responds with the task's full detail (same shape as `GET /task/{id}`).
+- **`collision_mode` reschedules related tasks the same way Timeline does** in the app. Only blocking relations (`blocks` / `blocked_by`) are followed, recursively; finished tasks never move. Tasks without a due date never move either, and the change does not propagate through them to their own related tasks.
+  - `none` (default): only the edited task changes.
+  - `keep_gap` keeps the gaps — the start drives predecessors, the end drives successors (in whole days):
+    - When the end moves by N days, following tasks move as a whole by N days, recursively — also earlier, with no "today" limit (only predecessors are kept from moving before today).
+    - When the start moves by N days, each direct predecessor that has not started yet moves as a whole by N days (never to before today) and the change continues to its own predecessors; a predecessor that has already started (starts today or earlier) keeps its start and only its end moves by N days. A predecessor never ends before it starts.
+    - When a predecessor's end moves, its other following tasks move by the same number of days.
+  - `use_gap`: related tasks move only when they would collide with the edited task; an existing gap is used up first. Moving later shifts following tasks, moving earlier shifts preceding tasks. Tasks that already overlapped before the change move by the same number of days, so the overlap is kept. When the task had no due date before, collisions in both directions are resolved, like scheduling a task on the Timeline.
+  - The edited task always ends with exactly the dates it would get without `collision_mode`. Nothing else moves when its due date is cleared, when only the time of day changes, with `keep_gap` when the task had no due date before, or for tasks in template projects.
+  - `keep_gap` / `use_gap` need the Business plan, like the Timeline view: whenever the request contains `due_date` or `due_date_end` (even `null`) together with one of them and the project owner cannot use Business features, it fails with `402` (you are the owner) or `403` and nothing is saved — even if nothing would be rescheduled.
+  - The edit is not atomic: the other fields are saved first, then related tasks are rescheduled. If rescheduling fails unexpectedly, the request returns an error but the other changes stay saved, so re-read the task before retrying.
+  - Related tasks are rescheduled even in projects you cannot see; `shifted_tasks` lists only those you can. Each rescheduled task fires the usual due date notifications and a `task_edited` webhook; the edited task and the rescheduled tasks share one due date notification, so `notify_author` applies to all of them.
 - Note the HTTP method: `POST` is used for edits here (historical REST shape), not `PUT`/`PATCH`.
 
 **Parameters:**
@@ -3074,8 +3530,9 @@ _Request body (required)_
 - Properties:
     - `name` (string)
     - `description` (object) — Task description as an object, identical to the POST /task/{task_id}/description request body. Files are downloaded from download_url, attached to the description, and the description file set is reconciled (files no longer present are archived).
-    - `due_date` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.
+    - `due_date` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description. Send `null` (with `due_date_end`) to clear the deadline.
     - `due_date_end` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.
+    - `collision_mode` (string enum: none|keep_gap|use_gap) — How tasks linked by blocking relations react to the due date change. See behavior notes.
     - `worker` (integer)
     - `priority_enum` (string enum: l|m|h) — Allowed options are l, m, h. Set to null to remove priority.
     - `labels` (array<TaskLabelAddInput>)
@@ -3086,7 +3543,10 @@ _Request body (required)_
 
 **Responses:**
 
-- `200` — Task updated _(schema: `TaskDetail`)_
+- `200` — Task updated
+- `400` — Invalid request body, e.g. unknown `collision_mode`, description files that cannot be attached (see the `FileCannotBeAttached` response), or a `files[].download_url` that was refused or could not be downloaded: it must be a publicly reachable http(s) URL on port 80/443; redirects, Freelo's own servers and private or local addresses are not fetched, and the file must not exceed 1945 MiB. The error message states the cause. _(schema: `ErrorResponse`)_
+- `402` — `collision_mode` `keep_gap` / `use_gap` with a due date change, you own the project and its plan does not include Business features
+- `403` — No permission to edit the task or its due dates, or `collision_mode` `keep_gap` / `use_gap` with a due date change in a project whose owner does not have Business features
 
 ---
 
@@ -3165,7 +3625,7 @@ Creates the task description if none exists, or **overwrites** the existing one 
 
 **Behavior notes (non-obvious):**
 - Upsert semantics: first call creates, subsequent call **replaces** the content entirely. Any previous content is lost — not stored in history.
-- `files` expects already-uploaded file UUIDs (see `POST /file/upload`).
+- `files` expects already-uploaded file UUIDs (see `POST /file/upload`). Files already attached to the description may be listed again; any other UUID must be your own fresh upload — a reused, foreign or unknown UUID returns **400** and the description is left unchanged.
 
 **Parameters:**
 
@@ -3185,6 +3645,7 @@ _Request body (required)_
 **Responses:**
 
 - `200` — Description updated _(schema: `Comment`)_
+- `400` — Description files that cannot be attached (see the `FileCannotBeAttached` response), or a `files[].download_url` that was refused or could not be downloaded: it must be a publicly reachable http(s) URL on port 80/443; redirects, Freelo's own servers and private or local addresses are not fetched, and the file must not exceed 1945 MiB. The error message states the cause. _(schema: `ErrorResponse`)_
 
 ---
 

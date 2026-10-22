@@ -15,6 +15,7 @@ namespace Freelo\Sdk\Generated\Model;
  * | Conditional field | Appears when `type` is |
  * | --- | --- |
  * | `is_smart` | `task` |
+ * | `multi_project_task` | `task`; nested in `task` for `taskcheck`, `task_comment` |
  * | `task` | `task` (only if it's a smart subtask), `taskcheck`, `task_comment` |
  * | `smart_task` | `taskcheck`, `task_comment` (the smart-task ancestor, if any) |
  * | `note` | `note_comment` |
@@ -38,6 +39,7 @@ class SearchResult
         public readonly mixed $tasklist,
         public readonly ?int $state = null,
         public readonly ?bool $isSmart = null,
+        public readonly mixed $multiProjectTask,
         public readonly array $task = [],
         public readonly array $smartTask = [],
         public readonly array $note = [],
@@ -68,6 +70,7 @@ class SearchResult
             tasklist: isset($data['tasklist']) ? $data['tasklist'] : null,
             state: isset($data['state']) ? (int) $data['state'] : null,
             isSmart: isset($data['is_smart']) ? (bool) $data['is_smart'] : null,
+            multiProjectTask: isset($data['multi_project_task']) ? $data['multi_project_task'] : null,
             task: isset($data['task']) && is_array($data['task'])
                 ? $data['task'] : [],
             smartTask: isset($data['smart_task']) && is_array($data['smart_task'])

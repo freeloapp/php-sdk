@@ -11,12 +11,15 @@ use Freelo\Sdk\Http\FreeloClient;
 use Freelo\Sdk\Http\Response;
 use Freelo\Sdk\Resource\CommentResource;
 use Freelo\Sdk\Resource\CustomFieldResource;
+use Freelo\Sdk\Resource\DirectoryResource;
 use Freelo\Sdk\Resource\EventResource;
 use Freelo\Sdk\Resource\FileResource;
 use Freelo\Sdk\Resource\InvoiceResource;
+use Freelo\Sdk\Resource\LinkResource;
 use Freelo\Sdk\Resource\NoteResource;
 use Freelo\Sdk\Resource\NotificationResource;
 use Freelo\Sdk\Resource\PinnedItemResource;
+use Freelo\Sdk\Resource\ProjectFileResource;
 use Freelo\Sdk\Resource\ProjectLabelResource;
 use Freelo\Sdk\Resource\ProjectResource;
 use Freelo\Sdk\Resource\SearchResource;
@@ -58,6 +61,9 @@ class Freelo
     private ?TaskResource $taskResource = null;
     private ?TasklistResource $tasklistResource = null;
     private ?FileResource $fileResource = null;
+    private ?DirectoryResource $directoryResource = null;
+    private ?LinkResource $linkResource = null;
+    private ?ProjectFileResource $projectFileResource = null;
     private ?TaskLabelResource $taskLabelResource = null;
     private ?CommentResource $commentResource = null;
     private ?ProjectLabelResource $projectLabelResource = null;
@@ -130,6 +136,30 @@ class Freelo
     public function files(): FileResource
     {
         return $this->fileResource ??= new FileResource($this->client);
+    }
+
+    /**
+     * Get directory resource manager (Files section)
+     */
+    public function directories(): DirectoryResource
+    {
+        return $this->directoryResource ??= new DirectoryResource($this->client);
+    }
+
+    /**
+     * Get link resource manager (Files section)
+     */
+    public function links(): LinkResource
+    {
+        return $this->linkResource ??= new LinkResource($this->client);
+    }
+
+    /**
+     * Get project file resource manager (Files section)
+     */
+    public function projectFiles(): ProjectFileResource
+    {
+        return $this->projectFileResource ??= new ProjectFileResource($this->client);
     }
 
     /**
