@@ -7,7 +7,10 @@ namespace Freelo\Sdk\Tests\Unit;
 use Freelo\Sdk\Auth\ApiKeyCredentials;
 use Freelo\Sdk\Freelo;
 use Freelo\Sdk\Resource\CommentResource;
+use Freelo\Sdk\Resource\DirectoryResource;
 use Freelo\Sdk\Resource\FileResource;
+use Freelo\Sdk\Resource\LinkResource;
+use Freelo\Sdk\Resource\ProjectFileResource;
 use Freelo\Sdk\Resource\ProjectResource;
 use Freelo\Sdk\Resource\TaskLabelResource;
 use Freelo\Sdk\Resource\TaskResource;
@@ -55,6 +58,16 @@ class FreeloTest extends TestCase
 
         $this->assertInstanceOf(FileResource::class, $resource);
         $this->assertSame($resource, $this->freelo->files(), 'Should return same instance');
+    }
+
+    public function testFilesSectionResourcesAreLazySingletons(): void
+    {
+        $this->assertInstanceOf(DirectoryResource::class, $this->freelo->directories());
+        $this->assertSame($this->freelo->directories(), $this->freelo->directories());
+        $this->assertInstanceOf(LinkResource::class, $this->freelo->links());
+        $this->assertSame($this->freelo->links(), $this->freelo->links());
+        $this->assertInstanceOf(ProjectFileResource::class, $this->freelo->projectFiles());
+        $this->assertSame($this->freelo->projectFiles(), $this->freelo->projectFiles());
     }
 
     public function testTaskLabelsReturnsTaskLabelResource(): void

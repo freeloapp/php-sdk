@@ -129,12 +129,15 @@ class FreeloClient
      * Send a DELETE request
      *
      * @param string $uri
+     * @param array<string, mixed> $queryParams
      * @return Response
      * @throws ApiException
      */
-    public function delete(string $uri): Response
+    public function delete(string $uri, array $queryParams = []): Response
     {
-        return $this->request('DELETE', $uri);
+        return $this->request('DELETE', $uri, [
+            'query' => $queryParams,
+        ]);
     }
 
     /**
@@ -142,10 +145,11 @@ class FreeloClient
      *
      * @param string $uri
      * @param string $filePath
+     * @param array<string, string|int> $fields Additional form fields sent alongside the file
      * @return Response
      * @throws ApiException
      */
-    public function uploadFile(string $uri, string $filePath): Response
+    public function uploadFile(string $uri, string $filePath, array $fields = []): Response
     {
         if (!file_exists($filePath)) {
             throw new ApiException("File not found: {$filePath}");
@@ -160,7 +164,14 @@ class FreeloClient
         $fileContent = file_get_contents($filePath);
         $mimeType = mime_content_type($filePath) ?: 'application/octet-stream';
 
-        $body = "--{$boundary}\r\n";
+        $body = '';
+        foreach ($fields as $name => $value) {
+            $body .= "--{$boundary}\r\n";
+            $body .= "Content-Disposition: form-data; name=\"{$name}\"\r\n\r\n";
+            $body .= $value . "\r\n";
+        }
+
+        $body .= "--{$boundary}\r\n";
         $body .= "Content-Disposition: form-data; name=\"file\"; filename=\"{$filename}\"\r\n";
         $body .= "Content-Type: {$mimeType}\r\n\r\n";
         $body .= $fileContent . "\r\n";

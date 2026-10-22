@@ -208,7 +208,10 @@ $response = $userFreelo->call('/users/me', 'GET');
 | Tasks | `tasks()` | Task management |
 | Tasklists | `tasklists()` | Tasklist management |
 | Comments | `comments()` | Comment management |
-| Files | `files()` | File upload/download |
+| Files | `files()` | Attachment upload/download, Files section listing |
+| Directories | `directories()` | Files section directories |
+| Links | `links()` | Links to external documents in the Files section |
+| Project Files | `projectFiles()` | Files stored in the Files section |
 | Task Labels | `taskLabels()` | Task label management |
 | Project Labels | `projectLabels()` | Project label management |
 | Subtasks | `subtasks()` | Subtask management |

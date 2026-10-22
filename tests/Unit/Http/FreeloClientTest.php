@@ -96,6 +96,50 @@ class FreeloClientTest extends TestCase
         $this->assertInstanceOf(Response::class, $response);
     }
 
+    public function testDeleteRequestWithQueryParams(): void
+    {
+        $this->setupSuccessfulRequest('DELETE', 'directories/abc?force=true', '');
+
+        $response = $this->client->delete('directories/abc', ['force' => 'true']);
+
+        $this->assertInstanceOf(Response::class, $response);
+    }
+
+    public function testUploadFileSendsAdditionalFormFields(): void
+    {
+        $this->setupSuccessfulRequest('POST', 'project-files', '{}');
+
+        $sentBody = null;
+        $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
+        $this->streamFactory->method('createStream')
+            ->willReturnCallback(function (string $content) use (&$sentBody) {
+                $sentBody = $content;
+
+                return $this->createMock(StreamInterface::class);
+            });
+        $this->client = new FreeloClient(
+            $this->httpClient,
+            $this->requestFactory,
+            $this->streamFactory,
+            $this->credentials,
+        );
+
+        $filePath = tempnam(sys_get_temp_dir(), 'freelo');
+        file_put_contents($filePath, 'file-bytes');
+
+        try {
+            $this->client->uploadFile('project-files', $filePath, ['project_id' => 7, 'caption' => 'Contract']);
+        } finally {
+            unlink($filePath);
+        }
+
+        $this->assertIsString($sentBody);
+        $this->assertStringContainsString("name=\"project_id\"\r\n\r\n7\r\n", $sentBody);
+        $this->assertStringContainsString("name=\"caption\"\r\n\r\nContract\r\n", $sentBody);
+        $this->assertStringContainsString("name=\"file\"; filename=\"" . basename($filePath) . "\"", $sentBody);
+        $this->assertStringContainsString("file-bytes\r\n", $sentBody);
+    }
+
     public function testSetAndGetBaseUrl(): void
     {
         $customUrl = 'https://custom-api.example.com/v2';
