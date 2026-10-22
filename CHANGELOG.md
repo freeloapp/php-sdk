@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-22
+
 ### Added
 - **Files section on three new resources** — `directories()` (`POST /directories`, `GET|PATCH|DELETE /directories/{directory_uuid}`), `links()` (`POST /links`, `PATCH|DELETE /links/{link_uuid}`) and `projectFiles()` (`POST /project-files`, `PATCH|DELETE /project-files/{file_uuid}`). All return `Model\File`, the same shape `files()->getAll()` lists. `update()` sends only the keys you pass, so `directory_uuid => null` moves an item to the project root and `note => null` removes a note. `directories()->delete()` rejects a non-empty directory with 409 unless called with `force: true`, which takes the whole content with it. `projectFiles()->upload()` stores a file in the Files section; `files()->upload()` stays the way to prepare comment, task and note attachments.
 - **`FreeloClient::delete()` takes query parameters and `uploadFile()` extra form fields** — both new arguments are optional, existing calls are unchanged.
@@ -244,7 +246,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI/CD pipeline
 - Code coverage reporting
 
-[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/freeloapp/php-sdk/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/freeloapp/php-sdk/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/freeloapp/php-sdk/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/freeloapp/php-sdk/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/freeloapp/php-sdk/compare/v2.1.0...v2.2.0
