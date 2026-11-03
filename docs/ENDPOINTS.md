@@ -383,7 +383,7 @@ _Request body (required)_
 
 `operationId`: `addOrEditEnumValue`
 
-Sets the value of an **enum-typed** custom field on a task by referencing one of the field's predefined enum options (by UUID). Upsert semantics — creates or updates based on the (`task_id`, `customFieldUuid`) pair.
+Sets the value of an **enum-typed** custom field on a task by referencing one of the field's predefined enum options (by UUID). Upsert semantics — creates or updates based on the (`task_id`, `custom_field_uuid`) pair.
 
 **Use cases:**
 - Selecting a dropdown / status value on a task programmatically
@@ -391,10 +391,9 @@ Sets the value of an **enum-typed** custom field on a task by referencing one of
 
 **Behavior notes (non-obvious):**
 - `value` is the **UUID of an enum option** (fetched from `/custom-field-enum/get-for-custom-field/{uuid}`), **not** the display string.
-- Field name casing mismatch: body uses camelCase `customFieldUuid` (unlike the scalar endpoint which uses snake_case `custom_field_uuid`). Matches the server's internal data key.
 - Same cross-project rule applies: custom field and task must be in the same project; otherwise 409.
 - If the enum option UUID does not exist or belongs to a different custom field, 404 with "Enum was not found.".
-- Response uses the camelCase key `customFieldEnum` for the value wrapper.
+- Response is wrapped: `{ "custom_field_value": { ... } }`.
 
 **Request body:**
 
@@ -403,7 +402,7 @@ _Request body (required)_
 - Content-Type: `application/json`
 - Schema: `object`
 - Properties:
-    - `customFieldUuid` **required** (string<uuid>)
+    - `custom_field_uuid` **required** (string<uuid>)
     - `task_id` **required** (integer)
     - `value` **required** (string<uuid>) — UUID of enum option
 
@@ -643,6 +642,7 @@ Returns all custom-field definitions configured on a project, plus a boolean ind
 **Behavior notes:**
 - Soft-deleted custom fields are excluded.
 - Includes enum fields with their options embedded.
+- Returns an empty `custom_fields` list when the project owner can't use Business features (custom fields are a Business feature). The project owner's plan decides, not the caller's.
 
 **Parameters:**
 
@@ -4551,6 +4551,7 @@ Creates a finalized work report (time entry) directly on a task — bypassing th
 
 **Behavior notes:**
 - `worker_id` defaults to the caller if omitted. To log time for a different user, the caller must be the project's owner / commander / have reporting rights; otherwise `WorkerHasNoAccessToTasklistException` → 400.
+- A task the caller cannot access returns `404`, the same as for a missing task.
 - `date_reported` defaults to today if omitted; pass an explicit date to backdate.
 - `cost` uses the string currency-amount format (e.g. `"100025"` = 1000.25). If omitted, the server derives it from the worker's hourly rate × minutes.
 - 400 `WorkReportCanNotBeCreatedException` fires if the combination (project state, tasklist ACL) disallows logging time.
@@ -4631,7 +4632,7 @@ Permanently removes a work report.
 - Removing a report logged by mistake
 
 **Behavior notes:**
-- ACL: only the report author or project admin (owner / commander) can delete. Unauthorized callers get 400 with `UserCannotDeleteWorkReport` message (not 403).
+- ACL: only the report author or project admin (owner / commander) can delete. Other users get `404`, the same as for a missing report (hiding existence).
 - If the report is tied to a project that has been **marked as invoiced**, the deletion may be refused — invoices freeze underlying reports.
 
 **Parameters:**
@@ -4659,7 +4660,7 @@ Updates minutes, cost, date, note, or re-targets the report at a different task.
 
 **Behavior notes:**
 - `task_id` can be changed to **re-parent** the report to a different task — ACL is re-checked against the new task.
-- ACL rules: the report author and the project owner/commander can edit; other users get `NotFoundException` (hiding existence).
+- ACL rules: the report author and the project owner/commander can edit; other users get `NotFoundException` (hiding existence), also for an empty body.
 - If the report's parent project has been marked as invoiced, edits may be blocked — see `/issued-invoice/{id}/mark-as-invoiced`.
 - Omitted fields keep their stored value. `minutes` must be an integer or an integer-valued
   string; any other value is rejected with `400`, it is never silently stored as `0`.

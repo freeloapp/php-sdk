@@ -26,6 +26,7 @@ class CustomFieldWithValue
         public readonly ?string $value = null,
         public readonly ?\DateTimeImmutable $valueDateAdd = null,
         public readonly ?\DateTimeImmutable $valueDateEditedAt = null,
+        public readonly ?string $customFieldEnumUuid = null,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -48,6 +49,7 @@ class CustomFieldWithValue
             value: isset($data['value']) ? (string) $data['value'] : null,
             valueDateAdd: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['value_date_add'] ?? null),
             valueDateEditedAt: \Freelo\Sdk\Internal\DateTimeParser::parseDateTime($data['value_date_edited_at'] ?? null),
+            customFieldEnumUuid: isset($data['custom_field_enum_uuid']) ? (string) $data['custom_field_enum_uuid'] : null,
             data: $data,
         );
     }
