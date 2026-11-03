@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Rate limit state was never read from real API responses** — `RateLimiter::updateFromHeaders()` looked only for `X-RateLimit-*` / `RateLimit-Limit|Remaining|Reset`, but the API sends IETF structured headers `RateLimit: "default";r=42;t=5` and `RateLimit-Policy: "default";q=60;w=20`, so `getRemaining()`, `getLimit()` and `getResetAt()` always returned `null` and `isLimitExceeded()` was always `false`. They are now parsed (`r` → remaining, `t` → `getResetAt()` = now + `t`, `q` → limit); the legacy formats remain a fallback. README and SECURITY.md no longer state a fixed "25 requests/minute" — the limit is per user, shared by all their apps and keys, configurable, and `Retry-After` on a 429 is authoritative.
+
 ## [2.5.0] - 2026-10-22
 
 ### Added

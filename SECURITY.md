@@ -102,7 +102,7 @@ composer update freeloapp/php-sdk
 
 ### 6. Rate Limiting
 
-Respect API rate limits to prevent service disruption. The SDK includes built-in rate limit handling, but ensure you're not making excessive requests.
+Respect API rate limits to prevent service disruption. The limit applies per Freelo user and is shared by all applications and API keys of that user; its size may change, so read it from the `RateLimit` / `RateLimit-Policy` response headers (exposed via `getRateLimiter()`) instead of hardcoding it. On `429 Too Many Requests`, wait at least the number of seconds in `Retry-After` and back off exponentially on repeated 429s.
 
 ### 7. Principle of Least Privilege
 
