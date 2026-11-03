@@ -21,43 +21,159 @@ class RateLimiter
     /**
      * Update rate limit information from response headers
      *
+     * Understands the IETF structured headers sent by the Freelo API
+     * (`RateLimit: "default";r=42;t=5` and `RateLimit-Policy: "default";q=60;w=20`)
+     * and falls back to the legacy `X-RateLimit-*` / `RateLimit-Limit|Remaining|Reset` formats.
+     *
      * @param array<string, string|string[]> $headers Response headers
      */
     public function updateFromHeaders(array $headers): void
     {
-        // Common rate limit header formats
-        $headerMappings = [
-            'limit' => ['X-RateLimit-Limit', 'RateLimit-Limit', 'X-Rate-Limit-Limit'],
-            'remaining' => ['X-RateLimit-Remaining', 'RateLimit-Remaining', 'X-Rate-Limit-Remaining'],
-            'reset' => ['X-RateLimit-Reset', 'RateLimit-Reset', 'X-Rate-Limit-Reset'],
-        ];
+        $headers = $this->normalizeHeaders($headers);
 
-        $this->limit = $this->extractHeaderValue($headers, $headerMappings['limit']);
-        $this->remaining = $this->extractHeaderValue($headers, $headerMappings['remaining']);
-        $this->resetAt = $this->extractHeaderValue($headers, $headerMappings['reset']);
+        $this->limit = null;
+        $this->remaining = null;
+        $this->resetAt = null;
+
+        $policyName = null;
+        if (isset($headers['ratelimit'])) {
+            $item = $this->selectRateLimitItem($this->parseStructuredList($headers['ratelimit']));
+            if ($item !== null) {
+                $policyName = $item['name'];
+                $this->remaining = $item['params']['r'] ?? null;
+                $resetIn = $item['params']['t'] ?? null;
+                $this->resetAt = $resetIn !== null ? time() + $resetIn : null;
+            }
+        } else {
+            $this->remaining = $this->extractHeaderValue(
+                $headers,
+                ['x-ratelimit-remaining', 'ratelimit-remaining', 'x-rate-limit-remaining'],
+            );
+            $this->resetAt = $this->extractHeaderValue(
+                $headers,
+                ['x-ratelimit-reset', 'ratelimit-reset', 'x-rate-limit-reset'],
+            );
+        }
+
+        if (isset($headers['ratelimit-policy'])) {
+            $policies = $this->parseStructuredList($headers['ratelimit-policy']);
+            $this->limit = $this->selectPolicyQuota($policies, $policyName);
+        }
+
+        $this->limit ??= $this->extractHeaderValue(
+            $headers,
+            ['x-ratelimit-limit', 'ratelimit-limit', 'x-rate-limit-limit'],
+        );
     }
 
     /**
-     * Extract a header value from response headers
-     *
      * @param array<string, string|string[]> $headers
-     * @param string[] $possibleHeaders
-     * @return int|null
+     * @return array<string, string>
+     */
+    private function normalizeHeaders(array $headers): array
+    {
+        $normalized = [];
+        foreach ($headers as $key => $value) {
+            $normalized[strtolower((string)$key)] = is_array($value) ? implode(', ', $value) : $value;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Extract a legacy integer header value
+     *
+     * @param array<string, string> $headers Normalized headers
+     * @param string[] $possibleHeaders Lowercase header names
      */
     private function extractHeaderValue(array $headers, array $possibleHeaders): ?int
     {
-        // Normalize headers to lowercase keys
-        $normalizedHeaders = [];
-        foreach ($headers as $key => $value) {
-            $normalizedHeaders[strtolower($key)] = $value;
+        foreach ($possibleHeaders as $headerName) {
+            if (isset($headers[$headerName])) {
+                $value = trim(explode(',', $headers[$headerName])[0]);
+                return is_numeric($value) ? (int)$value : null;
+            }
         }
 
-        foreach ($possibleHeaders as $headerName) {
-            $normalizedName = strtolower($headerName);
-            if (isset($normalizedHeaders[$normalizedName])) {
-                $value = $normalizedHeaders[$normalizedName];
-                $value = is_array($value) ? $value[0] : $value;
-                return is_numeric($value) ? (int)$value : null;
+        return null;
+    }
+
+    /**
+     * Parse a structured-field list such as `"default";r=42;t=5, "burst";r=1;t=1`
+     *
+     * Only non-negative integer parameters are kept; anything else is ignored.
+     *
+     * @return list<array{name: string, params: array<string, int>}>
+     */
+    private function parseStructuredList(string $value): array
+    {
+        $items = [];
+        // Split on commas outside quoted strings
+        $members = preg_split('/,(?=(?:[^"]*"[^"]*")*[^"]*$)/', $value) ?: [];
+
+        foreach ($members as $member) {
+            $parts = explode(';', $member);
+            $name = trim(array_shift($parts), " \t\"");
+            if ($name === '') {
+                continue;
+            }
+
+            $params = [];
+            foreach ($parts as $part) {
+                $pair = explode('=', $part, 2);
+                if (count($pair) !== 2) {
+                    continue;
+                }
+                $key = strtolower(trim($pair[0]));
+                $raw = trim($pair[1]);
+                if ($key !== '' && preg_match('/^\d{1,15}$/', $raw) === 1) {
+                    $params[$key] = (int)$raw;
+                }
+            }
+
+            $items[] = ['name' => $name, 'params' => $params];
+        }
+
+        return $items;
+    }
+
+    /**
+     * Pick the most restrictive `RateLimit` item (lowest remaining quota)
+     *
+     * @param list<array{name: string, params: array<string, int>}> $items
+     * @return array{name: string, params: array<string, int>}|null
+     */
+    private function selectRateLimitItem(array $items): ?array
+    {
+        $selected = null;
+        foreach ($items as $item) {
+            if (!isset($item['params']['r'])) {
+                continue;
+            }
+            if ($selected === null || $item['params']['r'] < $selected['params']['r']) {
+                $selected = $item;
+            }
+        }
+
+        return $selected ?? ($items[0] ?? null);
+    }
+
+    /**
+     * Get the quota (`q`) of the matching policy, or of the first policy that has one
+     *
+     * @param list<array{name: string, params: array<string, int>}> $policies
+     */
+    private function selectPolicyQuota(array $policies, ?string $policyName): ?int
+    {
+        foreach ($policies as $policy) {
+            if ($policyName !== null && $policy['name'] === $policyName && isset($policy['params']['q'])) {
+                return $policy['params']['q'];
+            }
+        }
+
+        foreach ($policies as $policy) {
+            if (isset($policy['params']['q'])) {
+                return $policy['params']['q'];
             }
         }
 
@@ -109,6 +225,8 @@ class RateLimiter
 
     /**
      * Get the timestamp when the rate limit resets
+     *
+     * With the structured `RateLimit` header this is now + `t`, i.e. when the quota is fully replenished.
      *
      * @return int|null Unix timestamp when the limit resets
      */

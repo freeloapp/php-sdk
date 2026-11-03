@@ -296,14 +296,27 @@ $filters = FilterBuilder::create()
 
 ## Rate Limiting
 
-The API allows 25 requests/minute. The SDK tracks limits automatically:
+The API limits requests per Freelo user (token bucket). The limit is shared by every application and API key of the same user, and its size is configurable on the server and may change, so don't hardcode it. Each response carries the current state in IETF structured headers, for example:
+
+```
+RateLimit-Policy: "default";q=60;w=20   # q requests per w seconds
+RateLimit: "default";r=42;t=5           # r requests left, full again in t seconds
+```
+
+The SDK reads them after every request (legacy `X-RateLimit-*` headers are still understood):
 
 ```php
 $limiter = $freelo->getClient()->getRateLimiter();
+$limiter->getLimit();              // q from RateLimit-Policy
+$limiter->getRemaining();          // r from RateLimit
+$limiter->getSecondsUntilReset();  // t from RateLimit (getResetAt() = now + t)
+
 if ($limiter->isLimitExceeded()) {
     sleep($limiter->getSecondsUntilReset());
 }
 ```
+
+When the limit is exceeded the API answers `429` with `Retry-After: <seconds>`, which `RateLimitException::getRetryAfter()` returns. `Retry-After` is authoritative: wait at least that long before retrying, and back off exponentially if the 429s repeat. A `RetryHandler` passed to `FreeloClient` retries 429s and honours `Retry-After` (see `examples/rate-limiting.php`).
 
 ## Custom HTTP Client
 
