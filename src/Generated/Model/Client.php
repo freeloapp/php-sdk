@@ -10,6 +10,10 @@ declare(strict_types=1);
 namespace Freelo\Sdk\Generated\Model;
 
 /**
+ * Missing values are `null` in the client endpoints, `GET /project/{project_id}`, `GET /all-projects` and `GET /template-projects`; `GET /projects` and `GET /archived-projects` return an empty string instead.
+ *
+ * In `GET /project/{project_id}`, `GET /all-projects` and `GET /template-projects` the full client is returned only to users who can access it (its owner, or a project manager in a not-deleted project of its owner). Other project members get only `id`, `name` and `company`.
+ *
  * Client model.
  */
 class Client

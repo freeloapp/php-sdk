@@ -26,6 +26,7 @@ class ProjectDetail
         public readonly mixed $budget,
         public readonly ?int $realMinutesSpent = null,
         public readonly mixed $realCost,
+        public readonly mixed $client,
         public readonly array $tasklists = [],
         public readonly array $workers = [],
         /** @var array<string, mixed> */
@@ -50,6 +51,7 @@ class ProjectDetail
             budget: isset($data['budget']) ? $data['budget'] : null,
             realMinutesSpent: isset($data['real_minutes_spent']) ? (int) $data['real_minutes_spent'] : null,
             realCost: isset($data['real_cost']) ? $data['real_cost'] : null,
+            client: isset($data['client']) ? $data['client'] : null,
             tasklists: isset($data['tasklists']) && is_array($data['tasklists'])
                 ? $data['tasklists'] : [],
             workers: isset($data['workers']) && is_array($data['workers'])

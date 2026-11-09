@@ -7,10 +7,11 @@
 
 This digest exists to give LLMs and humans fast access to endpoint semantics (use cases, behavior notes, side effects) without parsing the full spec. Regenerated from `.openapi/freelo-api.yaml` on every `composer generate`.
 
-Total endpoints: **141** across 22 tag(s).
+Total endpoints: **150** across 23 tag(s).
 
 ## Table of contents
 
+- [Clients](#clients) — 8 endpoints
 - [Comments](#comments) — 4 endpoints
 - [Custom Fields](#custom-fields) — 18 endpoints
 - [Directories](#directories) — 4 endpoints
@@ -23,7 +24,7 @@ Total endpoints: **141** across 22 tag(s).
 - [Pinned Items](#pinned-items) — 3 endpoints
 - [Project Labels](#project-labels) — 5 endpoints
 - [Project files](#project-files) — 3 endpoints
-- [Projects](#projects) — 19 endpoints
+- [Projects](#projects) — 20 endpoints
 - [Search](#search) — 1 endpoint
 - [States](#states) — 1 endpoint
 - [Subtasks](#subtasks) — 2 endpoints
@@ -33,6 +34,190 @@ Total endpoints: **141** across 22 tag(s).
 - [Time Tracking](#time-tracking) — 4 endpoints
 - [Users](#users) — 7 endpoints
 - [Work Reports](#work-reports) — 4 endpoints
+
+## Clients
+
+### `DELETE /client/{client_id}`
+
+**Delete a client**
+
+`operationId`: `deleteClient`
+
+Deletes the client and removes it from all its projects; the projects stay.
+
+**Behavior notes:**
+- When the client is assigned to a project the user cannot see, it cannot be deleted — returns 403 with `error: client_used_in_hidden_projects`.
+- The removal from projects does not change their `date_edited_at`.
+
+**Responses:**
+
+- `200` — Client deleted _(schema: `SuccessResponse`)_
+- `403` — The user cannot access this client, or the client is assigned to projects the user cannot see
+- `404` — Client not found _(schema: `ErrorResponse`)_
+
+---
+
+### `GET /client/{client_id}`
+
+**Get client detail**
+
+`operationId`: `getClient`
+
+**Responses:**
+
+- `200` — Client detail _(schema: `Client`)_
+- `403` — The user cannot access this client _(schema: `ErrorResponse`)_
+- `404` — Client not found _(schema: `ErrorResponse`)_
+
+---
+
+### `PATCH /client/{client_id}`
+
+**Update a client**
+
+`operationId`: `updateClient`
+
+Partial update: only sent fields change, `null` clears a field.
+
+**Behavior notes:**
+- The client must keep `name` or `company`, otherwise 400.
+- When the client is assigned to a project the user cannot see, the client cannot be changed — returns 403 with `error: client_used_in_hidden_projects` and `hidden_projects_count`. `GET /client/{client_id}/projects` shows the visible part.
+- A collision with another client of the same owner returns 409 (see `POST /clients`).
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `ClientInput`
+
+**Responses:**
+
+- `200` — Client updated _(schema: `Client`)_
+- `400` — Invalid request body, or the client would have neither `name` nor `company` _(schema: `ErrorResponse`)_
+- `403` — The user cannot access this client, or the client is assigned to projects the user cannot see
+- `404` — Client not found _(schema: `ErrorResponse`)_
+- `409` — A client with the same e-mail and company ID already exists _(schema: `ClientAlreadyExistsError`)_
+
+---
+
+### `GET /client/{client_id}/projects`
+
+**Get projects of a client**
+
+`operationId`: `getClientProjects`
+
+Projects (active, archived and templates) the client is assigned to. Only projects the user can see are listed; `total_count` and `is_complete` tell whether the list is complete.
+
+**Use cases:**
+- Checking where a client is used before changing or deleting it
+
+**Parameters:**
+
+- `client_id` [path, required] (integer)
+
+**Responses:**
+
+- `200` — Projects of the client _(schema: `ClientProjects`)_
+- `403` — The user cannot access this client _(schema: `ErrorResponse`)_
+- `404` — Client not found _(schema: `ErrorResponse`)_
+
+---
+
+### `GET /clients`
+
+**Get clients**
+
+`operationId`: `getClients`
+
+Paginated list of clients the user can work with: clients the user owns and clients owned by users in whose (not deleted) projects the user is a project manager.
+
+**Use cases:**
+- Picking a client to assign to a project
+- Syncing clients with a CRM or invoicing tool
+
+**Parameters:**
+
+- `p` [query] (integer) — Page number (starting from 0). Alias of `page` — `p` takes precedence when both are provided.
+- `page` [query] (integer) — Page number (starting from 0). Alias of `p` — `p` takes precedence when both are provided.
+
+**Responses:**
+
+- `200` — Paginated clients
+- `400` — Negative page number _(schema: `ErrorResponse`)_
+
+---
+
+### `POST /clients`
+
+**Create a client**
+
+`operationId`: `createClient`
+
+Creates a client owned by the authenticated user. To assign it to a project, call `PUT /project/{project_id}/client`.
+
+**Behavior notes:**
+- `name` or `company` is required (after trimming).
+- A client with the same `email` and `company_id` (or the same `email` and no `company_id`) already owned by the user returns 409 with `existing_client_id`. Clients without an e-mail never collide.
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `ClientInput`
+
+**Responses:**
+
+- `201` — Client created _(schema: `Client`)_
+- `400` — Invalid request body, or neither `name` nor `company` filled _(schema: `ErrorResponse`)_
+- `409` — A client with the same e-mail and company ID already exists _(schema: `ClientAlreadyExistsError`)_
+
+---
+
+### `DELETE /project/{project_id}/client`
+
+**Remove the client from a project**
+
+`operationId`: `removeProjectClient`
+
+Removes the client from the project; the client itself stays. Requires the right to edit the project.
+
+**Responses:**
+
+- `200` — Client removed _(schema: `SuccessResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No right to edit the project _(schema: `ErrorResponse`)_
+- `404` — Project not found _(schema: `ErrorResponse`)_
+
+---
+
+### `PUT /project/{project_id}/client`
+
+**Assign a client to a project**
+
+`operationId`: `setProjectClient`
+
+Sets or replaces the client of the project. Requires the right to edit the project. The client must be accessible to the user and owned by the project owner or by a project manager of the owner's projects.
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `client_id` **required** (integer)
+
+**Responses:**
+
+- `200` — Client assigned _(schema: `SuccessResponse`)_
+- `400` — Invalid request body _(schema: `ErrorResponse`)_
+- `402` — The plan of the project owner has expired _(schema: `ErrorResponse`)_
+- `403` — No right to edit the project, or the client cannot be used for it _(schema: `ErrorResponse`)_
+- `404` — Project or client not found _(schema: `ErrorResponse`)_
+
+---
 
 ## Comments
 
@@ -106,7 +291,7 @@ Overwrites the text and / or attachments of an existing comment.
 - Updating a status comment with new info
 
 **Behavior notes:**
-- `files` replaces the full attachment set — pass the complete list of file UUIDs you want attached, not a delta.
+- Inline files follow `content` whether or not `files` is sent: a file whose anchor stays (as read back, or as a new `data-freelo-uuid` anchor) is kept or attached, a file whose anchor is removed is archived. Plain attachments are kept without `files`; with `files` they are replaced by exactly that list (`[]` removes them all). Pass the complete list, not a delta.
 - Files can also be attached inline via a `<a data-freelo-uuid="{file_uuid}">…</a>` anchor in `content` (see `POST /task/{id}/comments`). Use one mechanism per file, never both for the same UUID.
 - Files already attached to this comment may be listed again. Any other file must be your own fresh upload — a reused, foreign, unknown or archived-attachment UUID returns **400** and the comment is left unchanged.
 - ACL: only the comment's author can edit (or project owner / commander depending on role rules). Otherwise 404 `NotFoundException` is returned (not 403, to avoid leaking the existence of inaccessible comments).
@@ -124,7 +309,7 @@ _Request body (required)_
 - Schema: `object`
 - Properties:
     - `content` **required** (string) — Comment body (HTML / plain text). Supports inline file anchors (`<a data-freelo-uuid="{file_uuid}">…</a>`) and user mentions — see `POST /task/{id}/comments`.
-    - `files` (array<FileUpload>) — Files to attach as plain attachments (not placed inline in the body). Replaces the full attachment set. Use one mechanism per file — do not also embed the same UUID in `content`.
+    - `files` (array<FileUpload>) — Files to attach as plain attachments (not placed inline in the body). The complete list of plain attachments; omit it to keep them. Inline files follow `content` either way. Use one mechanism per file — do not also embed the same UUID in `content`.
     - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
@@ -1375,10 +1560,10 @@ Updates an existing note's title (`name`) and / or body (`content`).
 | Request | Result |
 |---|---|
 | `name` only (no `content` key) | Only the title changes; body and attachments stay as they are. |
-| `content` without `files` | The body is replaced; current attachments are kept with their captions. |
-| `content` with `files` | `files` is the **complete** list of attachments — attached files not listed are removed. Already attached files may be listed again. |
-| `content` with `files: []` | The body is replaced and **all attachments are removed**. Omit `files` to keep them. |
-| `content: null` | The body is cleared. Attachments follow the same rules as above (kept without `files`, replaced with `files`). |
+| `content` without `files` | The body is replaced. Inline files follow it: a file whose anchor stays is kept, a file whose anchor is removed is archived. Plain attachments are kept with their captions. |
+| `content` with `files` | `files` is the **complete** list of plain attachments — attached files neither listed nor anchored in `content` are removed. Already attached files may be listed again. |
+| `content` with `files: []` | The body is replaced; plain attachments are removed, files anchored in `content` stay. |
+| `content: null` | The body is cleared, so its inline files are archived; plain attachments are kept without `files` and replaced with `files`. |
 | `files` without `content` | Rejected with 400 — send the current `content` to keep it. |
 
 Files can also be attached inline via `<a data-freelo-uuid="{file_uuid}">caption</a>` in `content`.
@@ -1397,7 +1582,7 @@ _Request body (required)_
 - Properties:
     - `name` **required** (string)
     - `content` (string) — New body. Omit it to change only the title. Supports inline file anchors.
-    - `files` (array<FileUpload>) — Complete list of the note's attachments; requires `content`. Omit to keep the current attachments.
+    - `files` (array<FileUpload>) — Complete list of the note's plain attachments; requires `content`. Omit to keep them. Inline files follow `content`.
     - `notify_author` (boolean) — When true, the authenticated caller (the action author) is kept in the notification recipients even though they triggered the action. Useful for automations acting under your own token. Only takes effect if you are otherwise a subscriber/worker/tracking user of the target.
 
 **Responses:**
@@ -2365,6 +2550,8 @@ Paginated list of all users (workers + owner + guests) assigned to the given pro
 **Behavior notes:**
 - Returns basic user data only — it is **not** filtered by ACL-tasklist membership (a worker assigned only to some tasklists still appears in the full list).
 - Deleted (former) workers do not appear.
+- `hour_rate` is the worker's hourly rate in this project. The project owner and commanders see every
+  worker's rate; other callers see only their own and `null` for everyone else.
 
 **Parameters:**
 
@@ -2375,6 +2562,52 @@ Paginated list of all users (workers + owner + guests) assigned to the given pro
 **Responses:**
 
 - `200` — Successful response
+
+---
+
+### `POST /project/{project_id}/workers/{user_id}/hour-rate`
+
+**Set project worker hour rate**
+
+`operationId`: `setProjectWorkerHourRate`
+
+Sets, locks or removes the hourly rate of one user in one project — the same setting as the hourly rate
+field and the "user cannot change it" checkbox in the project's Users section.
+
+**Use cases:**
+- Setting rates for project members without clicking through every project and user in the UI
+
+**Behavior notes:**
+- The rate is stored in the **project currency**; `hour_rate` is in minor currency units (`150000` = 1500.00).
+- Send `hour_rate: null` to remove the rate; this also removes the lock. `is_fixed: true` together with
+  `hour_rate: null` is rejected with 400.
+- `is_fixed` is optional. When omitted, the current lock is kept (`false` for a user without a rate).
+- The rate applies **only to future work reports**. Existing work reports keep their stored cost and are
+  not recalculated — use `POST /work-reports/{work_report_id}` to change them.
+- Only the project owner and project commanders may set rates. A commander cannot change the owner's rate.
+- The user must already be a member of the project; no membership is created.
+
+**Parameters:**
+
+- `project_id` [path, required] (integer)
+- `user_id` [path, required] (integer)
+
+**Request body:**
+
+_Request body (required)_
+
+- Content-Type: `application/json`
+- Schema: `object`
+- Properties:
+    - `hour_rate` **required** () — Amount in minor currency units of the project currency (`150000` = 1500.00), or `null` to remove the rate.
+    - `is_fixed` (boolean) — When `true`, the user cannot change the rate themselves.
+
+**Responses:**
+
+- `200` — Hour rate after the change
+- `400` — Invalid `hour_rate` (negative, not a whole number of minor units, missing), invalid `is_fixed`, `is_fixed: true` with `hour_rate: null`, or the user is not a member of the project
+- `403` — The caller is not the project owner or a project commander, or a commander tried to change the owner's rate
+- `404` — Project not found or not visible to the caller, or the user does not exist
 
 ---
 
@@ -3030,6 +3263,7 @@ _Request body (required)_
 **Responses:**
 
 - `200` — Tasklist created
+- `404` — `template_id` is not a project template (an active or archived project is rejected too), `tasklist_id` is not an active tasklist with active tasks in that template, or the caller cannot access the template or the target.
 
 ---
 
@@ -3413,6 +3647,7 @@ _Request body (required)_
 
 - `200` — Task created
 - `400` — `files` that cannot be attached (see the `FileCannotBeAttached` response), or a `files[].download_url` that was refused or could not be downloaded: it must be a publicly reachable http(s) URL on port 80/443; redirects, Freelo's own servers and private or local addresses are not fetched, and the file must not exceed 1945 MiB. The error message states the cause. _(schema: `ErrorResponse`)_
+- `404` — `template_id` is not a project template (an active or archived project is rejected too), `task_id` is not an active task in that template, or the caller cannot access the template or the target.
 
 ---
 
@@ -3529,7 +3764,7 @@ _Request body (required)_
 - Schema: `object`
 - Properties:
     - `name` (string)
-    - `description` (object) — Task description as an object, identical to the POST /task/{task_id}/description request body. Files are downloaded from download_url, attached to the description, and the description file set is reconciled (files no longer present are archived).
+    - `description` (object) — Task description as an object, identical to the POST /task/{task_id}/description request body. Files are downloaded from download_url, attached to the description, and the description file set is reconciled (files no longer present are archived). Inline files follow the content: an anchor kept keeps its file, an anchor removed archives it. Plain attachments are kept without `files` and replaced by the list with `files`.
     - `due_date` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description. Send `null` (with `due_date_end`) to clear the deadline.
     - `due_date_end` (string<date-time>) — Naive ISO8601 timestamp in Europe/Prague timezone (no offset). See "Timestamp Format" in API description.
     - `collision_mode` (string enum: none|keep_gap|use_gap) — How tasks linked by blocking relations react to the due date change. See behavior notes.
@@ -3625,6 +3860,7 @@ Creates the task description if none exists, or **overwrites** the existing one 
 
 **Behavior notes (non-obvious):**
 - Upsert semantics: first call creates, subsequent call **replaces** the content entirely. Any previous content is lost — not stored in history.
+- Inline files follow `content` whether or not `files` is sent: a file whose anchor stays (as read back, or as a new `data-freelo-uuid` anchor) is kept or attached, a file whose anchor is removed is archived. Plain attachments are kept without `files`; with `files` they are replaced by exactly that list (`[]` removes them all).
 - `files` expects already-uploaded file UUIDs (see `POST /file/upload`). Files already attached to the description may be listed again; any other UUID must be your own fresh upload — a reused, foreign or unknown UUID returns **400** and the description is left unchanged.
 
 **Parameters:**
@@ -3665,6 +3901,7 @@ Closes a task — moves it to the **finished** state.
 - Any running timetracking **on this specific task** is stopped as part of the finish flow.
 - Emits `task_finished` event / webhooks.
 - Requires the caller to be the assignee, author, or a project manager (Role rules). Otherwise `RoleActionForbiddenException` → 403.
+- A task blocked by an unfinished task (a `blocked_by` relation, see `GET /task/{task_id}/relations`) cannot be finished: 403 with the message `Task {task_id} is blocked by a relation.` Finish the blocking task or delete the relation first.
 
 **Parameters:**
 
@@ -3682,6 +3919,7 @@ _Request body_
 **Responses:**
 
 - `200` — Successful response _(schema: `SuccessResponse`)_
+- `403` — The caller may not finish the task, or the task is blocked by an unfinished task. _(schema: `ErrorResponse`)_
 
 ---
 
