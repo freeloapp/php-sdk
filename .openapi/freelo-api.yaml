@@ -141,6 +141,8 @@ security:
 tags:
   - name: Projects
     description: Project management operations
+  - name: Clients
+    description: Clients of the account and their assignment to projects
   - name: Project Labels
     description: Project label management
   - name: Pinned Items
@@ -760,6 +762,8 @@ paths:
         **Behavior notes:**
         - Returns basic user data only — it is **not** filtered by ACL-tasklist membership (a worker assigned only to some tasklists still appears in the full list).
         - Deleted (former) workers do not appear.
+        - `hour_rate` is the worker's hourly rate in this project. The project owner and commanders see every
+          worker's rate; other callers see only their own and `null` for everyone else.
       operationId: getProjectWorkers
       parameters:
         - $ref: '#/components/parameters/ProjectIdParam'
@@ -781,7 +785,85 @@ paths:
                           workers:
                             type: array
                             items:
-                              $ref: '#/components/schemas/UserWithEmail'
+                              allOf:
+                                - $ref: '#/components/schemas/UserWithEmail'
+                                - type: object
+                                  properties:
+                                    hour_rate:
+                                      $ref: '#/components/schemas/ProjectWorkerHourRate'
+                                  required:
+                                    - hour_rate
+
+  /project/{project_id}/workers/{user_id}/hour-rate:
+    post:
+      tags:
+        - Projects
+      summary: Set project worker hour rate
+      description: |
+        Sets, locks or removes the hourly rate of one user in one project — the same setting as the hourly rate
+        field and the "user cannot change it" checkbox in the project's Users section.
+
+        **Use cases:**
+        - Setting rates for project members without clicking through every project and user in the UI
+
+        **Behavior notes:**
+        - The rate is stored in the **project currency**; `hour_rate` is in minor currency units (`150000` = 1500.00).
+        - Send `hour_rate: null` to remove the rate; this also removes the lock. `is_fixed: true` together with
+          `hour_rate: null` is rejected with 400.
+        - `is_fixed` is optional. When omitted, the current lock is kept (`false` for a user without a rate).
+        - The rate applies **only to future work reports**. Existing work reports keep their stored cost and are
+          not recalculated — use `POST /work-reports/{work_report_id}` to change them.
+        - Only the project owner and project commanders may set rates. A commander cannot change the owner's rate.
+        - The user must already be a member of the project; no membership is created.
+      operationId: setProjectWorkerHourRate
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdParam'
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hour_rate
+              properties:
+                hour_rate:
+                  oneOf:
+                    - type: integer
+                      minimum: 0
+                    - type: string
+                      pattern: '^\d+$'
+                  nullable: true
+                  description: Amount in minor currency units of the project currency (`150000` = 1500.00), or `null` to remove the rate.
+                  example: 150000
+                is_fixed:
+                  type: boolean
+                  description: When `true`, the user cannot change the rate themselves.
+                  example: true
+      responses:
+        '200':
+          description: Hour rate after the change
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: User ID
+                  hour_rate:
+                    $ref: '#/components/schemas/ProjectWorkerHourRate'
+        '400':
+          description: "Invalid `hour_rate` (negative, not a whole number of minor units, missing), invalid `is_fixed`, `is_fixed: true` with `hour_rate: null`, or the user is not a member of the project"
+        '403':
+          description: The caller is not the project owner or a project commander, or a commander tried to change the owner's rate
+        '404':
+          description: Project not found or not visible to the caller, or the user does not exist
 
   /project/{project_id}/archive:
     post:
@@ -993,6 +1075,315 @@ paths:
                     $ref: '#/components/schemas/UserBasic'
                   currency_iso:
                     type: string
+
+  # ==================== CLIENTS ====================
+  /clients:
+    get:
+      tags:
+        - Clients
+      summary: Get clients
+      description: |
+        Paginated list of clients the user can work with: clients the user owns and clients owned by users in whose (not deleted) projects the user is a project manager.
+
+        **Use cases:**
+        - Picking a client to assign to a project
+        - Syncing clients with a CRM or invoicing tool
+      operationId: getClients
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageAliasParam'
+      responses:
+        '200':
+          description: Paginated clients
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          clients:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Client'
+        '400':
+          description: Negative page number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Clients
+      summary: Create a client
+      description: |
+        Creates a client owned by the authenticated user. To assign it to a project, call `PUT /project/{project_id}/client`.
+
+        **Behavior notes:**
+        - `name` or `company` is required (after trimming).
+        - A client with the same `email` and `company_id` (or the same `email` and no `company_id`) already owned by the user returns 409 with `existing_client_id`. Clients without an e-mail never collide.
+      operationId: createClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientInput'
+      responses:
+        '201':
+          description: Client created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '400':
+          description: Invalid request body, or neither `name` nor `company` filled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: A client with the same e-mail and company ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientAlreadyExistsError'
+
+  /client/{client_id}:
+    parameters:
+      - $ref: '#/components/parameters/ClientIdParam'
+    get:
+      tags:
+        - Clients
+      summary: Get client detail
+      operationId: getClient
+      responses:
+        '200':
+          description: Client detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '403':
+          description: The user cannot access this client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Client not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Clients
+      summary: Update a client
+      description: |
+        Partial update: only sent fields change, `null` clears a field.
+
+        **Behavior notes:**
+        - The client must keep `name` or `company`, otherwise 400.
+        - When the client is assigned to a project the user cannot see, the client cannot be changed — returns 403 with `error: client_used_in_hidden_projects` and `hidden_projects_count`. `GET /client/{client_id}/projects` shows the visible part.
+        - A collision with another client of the same owner returns 409 (see `POST /clients`).
+      operationId: updateClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientInput'
+      responses:
+        '200':
+          description: Client updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+        '400':
+          description: Invalid request body, or the client would have neither `name` nor `company`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The user cannot access this client, or the client is assigned to projects the user cannot see
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - $ref: '#/components/schemas/ClientUsedInHiddenProjectsError'
+        '404':
+          description: Client not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: A client with the same e-mail and company ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientAlreadyExistsError'
+
+    delete:
+      tags:
+        - Clients
+      summary: Delete a client
+      description: |
+        Deletes the client and removes it from all its projects; the projects stay.
+
+        **Behavior notes:**
+        - When the client is assigned to a project the user cannot see, it cannot be deleted — returns 403 with `error: client_used_in_hidden_projects`.
+        - The removal from projects does not change their `date_edited_at`.
+      operationId: deleteClient
+      responses:
+        '200':
+          description: Client deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: The user cannot access this client, or the client is assigned to projects the user cannot see
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - $ref: '#/components/schemas/ClientUsedInHiddenProjectsError'
+        '404':
+          description: Client not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /client/{client_id}/projects:
+    get:
+      tags:
+        - Clients
+      summary: Get projects of a client
+      description: |
+        Projects (active, archived and templates) the client is assigned to. Only projects the user can see are listed; `total_count` and `is_complete` tell whether the list is complete.
+
+        **Use cases:**
+        - Checking where a client is used before changing or deleting it
+      operationId: getClientProjects
+      parameters:
+        - $ref: '#/components/parameters/ClientIdParam'
+      responses:
+        '200':
+          description: Projects of the client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientProjects'
+        '403':
+          description: The user cannot access this client
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Client not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /project/{project_id}/client:
+    parameters:
+      - $ref: '#/components/parameters/ProjectIdParam'
+    put:
+      tags:
+        - Clients
+      summary: Assign a client to a project
+      description: |
+        Sets or replaces the client of the project. Requires the right to edit the project. The client must be accessible to the user and owned by the project owner or by a project manager of the owner's projects.
+      operationId: setProjectClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - client_id
+              properties:
+                client_id:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Client assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '402':
+          description: The plan of the project owner has expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No right to edit the project, or the client cannot be used for it
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or client not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Clients
+      summary: Remove the client from a project
+      description: Removes the client from the project; the client itself stays. Requires the right to edit the project.
+      operationId: removeProjectClient
+      responses:
+        '200':
+          description: Client removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '402':
+          description: The plan of the project owner has expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: No right to edit the project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # ==================== PROJECT LABELS ====================
   /project-labels/find-available:
@@ -1772,6 +2163,11 @@ paths:
                           type: integer
                         name:
                           type: string
+        '404':
+          description: |
+            `template_id` is not a project template (an active or archived project is rejected too), `tasklist_id`
+            is not an active tasklist with active tasks in that template, or the caller cannot access the template
+            or the target.
 
   # ==================== TASKS ====================
   /project/{project_id}/tasklist/{tasklist_id}/tasks:
@@ -2236,12 +2632,15 @@ paths:
                   type: string
                 description:
                   type: object
-                  description:
+                  description: >-
                     Task description as an object, identical to the
                     POST /task/{task_id}/description request body. Files are
                     downloaded from download_url, attached to the description,
                     and the description file set is reconciled (files no longer
-                    present are archived).
+                    present are archived). Inline files follow the content:
+                    an anchor kept keeps its file, an anchor removed archives
+                    it. Plain attachments are kept without `files` and replaced
+                    by the list with `files`.
                   required:
                     - content
                   properties:
@@ -2415,6 +2814,7 @@ paths:
         - Any running timetracking **on this specific task** is stopped as part of the finish flow.
         - Emits `task_finished` event / webhooks.
         - Requires the caller to be the assignee, author, or a project manager (Role rules). Otherwise `RoleActionForbiddenException` → 403.
+        - A task blocked by an unfinished task (a `blocked_by` relation, see `GET /task/{task_id}/relations`) cannot be finished: 403 with the message `Task {task_id} is blocked by a relation.` Finish the blocking task or delete the relation first.
       operationId: finishTask
       parameters:
         - $ref: '#/components/parameters/TaskIdParam'
@@ -2440,6 +2840,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: The caller may not finish the task, or the task is blocked by an unfinished task.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /taskcheck/{taskcheck_id}:
     post:
@@ -2863,6 +3269,7 @@ paths:
 
         **Behavior notes (non-obvious):**
         - Upsert semantics: first call creates, subsequent call **replaces** the content entirely. Any previous content is lost — not stored in history.
+        - Inline files follow `content` whether or not `files` is sent: a file whose anchor stays (as read back, or as a new `data-freelo-uuid` anchor) is kept or attached, a file whose anchor is removed is archived. Plain attachments are kept without `files`; with `files` they are replaced by exactly that list (`[]` removes them all).
         - `files` expects already-uploaded file UUIDs (see `POST /file/upload`). Files already attached to the description may be listed again; any other UUID must be your own fresh upload — a reused, foreign or unknown UUID returns **400** and the description is left unchanged.
       operationId: editTaskDescription
       parameters:
@@ -3137,6 +3544,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: |
+            `template_id` is not a project template (an active or archived project is rejected too), `task_id` is
+            not an active task in that template, or the caller cannot access the template or the target.
 
   /task/{task_id}/total-time-estimate:
     post:
@@ -3670,7 +4081,7 @@ paths:
         - Updating a status comment with new info
 
         **Behavior notes:**
-        - `files` replaces the full attachment set — pass the complete list of file UUIDs you want attached, not a delta.
+        - Inline files follow `content` whether or not `files` is sent: a file whose anchor stays (as read back, or as a new `data-freelo-uuid` anchor) is kept or attached, a file whose anchor is removed is archived. Plain attachments are kept without `files`; with `files` they are replaced by exactly that list (`[]` removes them all). Pass the complete list, not a delta.
         - Files can also be attached inline via a `<a data-freelo-uuid="{file_uuid}">…</a>` anchor in `content` (see `POST /task/{id}/comments`). Use one mechanism per file, never both for the same UUID.
         - Files already attached to this comment may be listed again. Any other file must be your own fresh upload — a reused, foreign, unknown or archived-attachment UUID returns **400** and the comment is left unchanged.
         - ACL: only the comment's author can edit (or project owner / commander depending on role rules). Otherwise 404 `NotFoundException` is returned (not 403, to avoid leaking the existence of inaccessible comments).
@@ -3698,7 +4109,7 @@ paths:
                 files:
                   type: array
                   description: |
-                    Files to attach as plain attachments (not placed inline in the body). Replaces the full attachment set. Use one mechanism per file — do not also embed the same UUID in `content`.
+                    Files to attach as plain attachments (not placed inline in the body). The complete list of plain attachments; omit it to keep them. Inline files follow `content` either way. Use one mechanism per file — do not also embed the same UUID in `content`.
                   items:
                     $ref: '#/components/schemas/FileUpload'
                 notify_author:
@@ -6637,10 +7048,10 @@ paths:
         | Request | Result |
         |---|---|
         | `name` only (no `content` key) | Only the title changes; body and attachments stay as they are. |
-        | `content` without `files` | The body is replaced; current attachments are kept with their captions. |
-        | `content` with `files` | `files` is the **complete** list of attachments — attached files not listed are removed. Already attached files may be listed again. |
-        | `content` with `files: []` | The body is replaced and **all attachments are removed**. Omit `files` to keep them. |
-        | `content: null` | The body is cleared. Attachments follow the same rules as above (kept without `files`, replaced with `files`). |
+        | `content` without `files` | The body is replaced. Inline files follow it: a file whose anchor stays is kept, a file whose anchor is removed is archived. Plain attachments are kept with their captions. |
+        | `content` with `files` | `files` is the **complete** list of plain attachments — attached files neither listed nor anchored in `content` are removed. Already attached files may be listed again. |
+        | `content` with `files: []` | The body is replaced; plain attachments are removed, files anchored in `content` stay. |
+        | `content: null` | The body is cleared, so its inline files are archived; plain attachments are kept without `files` and replaced with `files`. |
         | `files` without `content` | Rejected with 400 — send the current `content` to keep it. |
 
         Files can also be attached inline via `<a data-freelo-uuid="{file_uuid}">caption</a>` in `content`.
@@ -6665,7 +7076,7 @@ paths:
                   description: New body. Omit it to change only the title. Supports inline file anchors.
                 files:
                   type: array
-                  description: Complete list of the note's attachments; requires `content`. Omit to keep the current attachments.
+                  description: Complete list of the note's plain attachments; requires `content`. Omit to keep them. Inline files follow `content`.
                   items:
                     $ref: '#/components/schemas/FileUpload'
                 notify_author:
@@ -6860,8 +7271,8 @@ paths:
                       enum: [last_updated]
                     order:
                       type: string
-                      enum: [ASC, DESC]
-                      description: Direction — note the uppercase values (`OrderEnum::ASC` / `OrderEnum::DESC`).
+                      enum: [asc, desc]
+                      description: Direction, case-insensitive (`ASC` / `DESC` are accepted too).
                 lang:
                   type: string
                   enum: [cs_cz, en_us]
@@ -6919,6 +7330,13 @@ components:
 
     ProjectIdParam:
       name: project_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    ClientIdParam:
+      name: client_id
       in: path
       required: true
       schema:
@@ -7136,6 +7554,28 @@ components:
             Normalized form of `fullname` (whitespace stripped, diacritics removed) used as the visible text after `@` inside a mention span. Build a mention with:
             `<span data-freelo-mention="1" data-freelo-user-id="{id}">@{mention_key}</span>`
 
+    ProjectWorkerHourRate:
+      type: object
+      nullable: true
+      description: |
+        Hourly rate of a user in a project, in the project currency. A user without a rate has `amount: 0` and
+        `is_fixed: false`. `null` when the caller may not see this user's rate.
+      properties:
+        amount:
+          type: integer
+          description: Minor currency units (`150000` = 1500.00)
+          example: 150000
+        currency:
+          type: string
+          example: CZK
+        is_fixed:
+          type: boolean
+          description: When `true`, the user cannot change the rate themselves.
+      required:
+        - amount
+        - currency
+        - is_fixed
+
     UserWithEmail:
       allOf:
         - $ref: '#/components/schemas/UserBasic'
@@ -7149,25 +7589,136 @@ components:
 
     Client:
       type: object
+      description: |
+        Missing values are `null` in the client endpoints, `GET /project/{project_id}`, `GET /all-projects` and `GET /template-projects`; `GET /projects` and `GET /archived-projects` return an empty string instead.
+
+        In `GET /project/{project_id}`, `GET /all-projects` and `GET /template-projects` the full client is returned only to users who can access it (its owner, or a project manager in a not-deleted project of its owner). Other project members get only `id`, `name` and `company`.
       properties:
         id:
           type: integer
         email:
           type: string
+          nullable: true
         name:
           type: string
+          nullable: true
         company:
           type: string
+          nullable: true
         company_id:
           type: string
+          nullable: true
         company_tax_id:
           type: string
+          nullable: true
         street:
           type: string
+          nullable: true
         town:
           type: string
+          nullable: true
         zip:
           type: string
+          nullable: true
+
+    ClientInput:
+      type: object
+      description: |
+        Values are trimmed (Unicode spaces included); an empty string means "not filled" and is stored as `null`. Spaces are removed from `company_id`. `email` is lowercased and transliterated to ASCII before validation. Unknown fields return 400.
+      properties:
+        name:
+          type: string
+          nullable: true
+          maxLength: 2044
+        company:
+          type: string
+          nullable: true
+          maxLength: 500
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 2044
+        company_id:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: Company registration number (IČO)
+        company_tax_id:
+          type: string
+          nullable: true
+          maxLength: 100
+          description: VAT number (DIČ)
+        street:
+          type: string
+          nullable: true
+          maxLength: 200
+        town:
+          type: string
+          nullable: true
+          maxLength: 200
+        zip:
+          type: string
+          nullable: true
+          maxLength: 255
+      example:
+        name: Otakar Brezina
+        company: Enigoo s.r.o.
+        email: otakar@example.com
+        company_id: '12345678'
+
+    ClientProjects:
+      type: object
+      properties:
+        projects:
+          type: array
+          description: Projects of the client the user can see
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              state:
+                $ref: '#/components/schemas/State'
+        total_count:
+          type: integer
+          description: All active, archived and template projects the client is assigned to, including those the user cannot see
+        visible_count:
+          type: integer
+        is_complete:
+          type: boolean
+          description: '`true` when `projects` lists every project of the client'
+
+    ClientAlreadyExistsError:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+        error:
+          type: string
+          enum: [client_already_exists]
+        existing_client_id:
+          type: integer
+          nullable: true
+          description: The colliding client; `null` when two requests raced and only the database caught the duplicate
+
+    ClientUsedInHiddenProjectsError:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+        error:
+          type: string
+          enum: [client_used_in_hidden_projects]
+        hidden_projects_count:
+          type: integer
+          description: Number of projects with this client the user cannot see
 
     TasklistBasic:
       type: object
@@ -7259,6 +7810,11 @@ components:
               type: integer
             real_cost:
               $ref: '#/components/schemas/Currency'
+            client:
+              description: 'Returned by `GET /all-projects`; not part of `GET /user/{user_id}/all-projects`.'
+              allOf:
+                - $ref: '#/components/schemas/Client'
+              nullable: true
 
     ProjectDetail:
       allOf:
@@ -7310,15 +7866,11 @@ components:
                   fullname:
                     type: string
                   hour_rate:
-                    type: object
-                    nullable: true
-                    properties:
-                      amount:
-                        type: integer
-                      currency:
-                        type: string
-                      is_fixed:
-                        type: boolean
+                    $ref: '#/components/schemas/ProjectWorkerHourRate'
+            client:
+              allOf:
+                - $ref: '#/components/schemas/Client'
+              nullable: true
 
     ProjectLabel:
       type: object
