@@ -23,6 +23,7 @@ class IssuedInvoice
         public readonly mixed $price,
         public readonly array $subject = [],
         public readonly array $invItems = [],
+        public readonly array $externInvoice = [],
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -44,6 +45,8 @@ class IssuedInvoice
                 ? $data['subject'] : [],
             invItems: isset($data['inv_items']) && is_array($data['inv_items'])
                 ? $data['inv_items'] : [],
+            externInvoice: isset($data['extern_invoice']) && is_array($data['extern_invoice'])
+                ? $data['extern_invoice'] : [],
             data: $data,
         );
     }

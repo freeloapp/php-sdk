@@ -41,6 +41,7 @@ class TaskDetail
         public readonly array $relations = [],
         public readonly mixed $copiedFromTask,
         public readonly mixed $multiProjectTask,
+        public readonly mixed $recurrence,
         /** @var array<string, mixed> */
         public readonly array $data = [],
     ) {
@@ -84,6 +85,7 @@ class TaskDetail
                 ? $data['relations'] : [],
             copiedFromTask: isset($data['copied_from_task']) ? $data['copied_from_task'] : null,
             multiProjectTask: isset($data['multi_project_task']) ? $data['multi_project_task'] : null,
+            recurrence: isset($data['recurrence']) ? $data['recurrence'] : null,
             data: $data,
         );
     }
